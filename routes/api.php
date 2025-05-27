@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 // ✅ ユーザー登録（スコア初期化も含む）
-Route::post('/register', [UserController::class, 'store']);
+Route::post('/register-user', [UserController::class, 'store']);
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\ScoreController;
@@ -12,6 +12,15 @@ use App\Http\Controllers\ScoreController;
 // ✅ ログインユーザー情報（要ログイン）
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+// ✅ ログアウト（Sanctumトークンを使用）
+use Illuminate\Support\Facades\Auth;
+Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
+    Auth::guard('web')->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return response()->json(['message' => 'Logged out']);
 });
 
 // ✅ スコア取得（誰でも閲覧可能）

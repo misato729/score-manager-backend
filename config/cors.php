@@ -6,7 +6,7 @@ return [
         'api/*',
         'login',
         'logout',
-        'register',
+        'register-user',
         'sanctum/csrf-cookie',
         '/user',
     ],

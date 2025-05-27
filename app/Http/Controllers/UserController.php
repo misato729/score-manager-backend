@@ -12,6 +12,7 @@ class UserController extends Controller
 {
     public function store(Request $request)
     {
+        \Log::info('🔥 register hit! data:', $request->all());
         // ✅ バリデーション（必要に応じて調整）
         $request->validate([
             'name' => 'required|string|max:255',
@@ -41,17 +42,18 @@ class UserController extends Controller
         return response()->json(['message' => 'User created', 'user_id' => $user->id]);
     }
 
-    public function destroy($id)
+    public function destroy($id, Request $request)
     {
         $user = User::findOrFail($id);
-
-        // 自分自身以外は削除できないように
-        if (auth()->id() !== (int)$id) {
+    
+        // ✅ 修正：auth() ではなく request->user()
+        if ($request->user()->id !== (int)$id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-
+    
         $user->delete();
-
+    
         return response()->json(['message' => 'Account deleted']);
     }
+
 }
