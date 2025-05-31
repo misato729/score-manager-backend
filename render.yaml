@@ -14,3 +14,8 @@ services:
         value: base64:fx/EOA3Oli6Z3l3NwKtZc1R8VImWylMjfbELClDaUr8=
       - key: APP_URL
         value: https://score-manager-backend.onrender.com/
+
+buildCommand: |
+  composer install
+  php artisan config:clear
+  php artisan config:cache
