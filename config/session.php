@@ -32,7 +32,7 @@ return [
     'http_only' => env('SESSION_HTTP_ONLY', true),
 
     // ✅ クッキーを他オリジンへ渡すには SameSite=None か null
-    'same_site' => env('SESSION_SAME_SITE', 'lax'), // 'lax' または null（最終手段は 'none'）
+    'same_site' => env('SESSION_SAME_SITE',default: 'lax'), // 'lax' または null（最終手段は 'none'）
 
     'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
 ];

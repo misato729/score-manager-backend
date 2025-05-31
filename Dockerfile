@@ -31,5 +31,8 @@ RUN chmod -R 775 storage bootstrap/cache
 # 公開ポート
 EXPOSE 10000
 
+# 設定キャッシュクリア
+RUN php artisan config:clear && php artisan route:clear && php artisan view:clear
+
 # マイグレーションしてからサーバー起動
 CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=10000
