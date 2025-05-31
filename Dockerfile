@@ -28,11 +28,11 @@ RUN composer install --no-dev --optimize-autoloader
 # 公開するポート（Renderで使う）
 EXPOSE 10000
 
-# Laravelを起動（HTTPサーバーを起動）
-CMD php artisan serve --host=0.0.0.0 --port=10000
-
 # Laravelの依存インストール
 RUN composer install --no-dev --optimize-autoloader
 
-# ✅ この2行を追加（パーミッション付与）
+# パーミッション調整
 RUN chmod -R 775 storage bootstrap/cache
+
+# ✅ マイグレーションしてからサーバー起動
+CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=10000
