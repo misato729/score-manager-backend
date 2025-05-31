@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome'); // resources/views/welcome.blade.php が表示されます
+    return 'Laravel is alive! 🎉';
 });
 
 
