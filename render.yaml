@@ -11,6 +11,6 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_KEY
-        value: base64:あとで設定
+        value: base64:fx/EOA3Oli6Z3l3NwKtZc1R8VImWylMjfbELClDaUr8=
       - key: APP_URL
         value: https://your-app-name.onrender.com
