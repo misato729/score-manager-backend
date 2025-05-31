@@ -1,13 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+// ログイン
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+
+Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+
 use App\Http\Controllers\UserController;
 // ✅ ユーザー登録（スコア初期化も含む）
 Route::post('/register-user', [UserController::class, 'store']);
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\ScoreController;
-
 
 // ✅ ログインユーザー情報（要ログイン）
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
