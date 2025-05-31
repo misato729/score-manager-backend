@@ -23,8 +23,8 @@ return [
 
     'path' => env('SESSION_PATH', '/'),
 
-    // ✅ ここを必ず「localhost」にする（またはnull）
-    'domain' => env('SESSION_DOMAIN', 'localhost'),
+
+    'domain' => env('SESSION_DOMAIN', null),
 
     // ✅ ローカル開発では false にする（httpsでないため）
     'secure' => env('SESSION_SECURE_COOKIE', false),
