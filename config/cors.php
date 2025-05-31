@@ -13,7 +13,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173'],
+    'allowed_origins' => ['http://localhost:5173', 'https://score-manager-frontend-ehaz.vercel.app/'], // 後で変える！！！！！！
 
     'allowed_origins_patterns' => [],
 
@@ -23,6 +23,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true, // ✅ これ重要！
+    'supports_credentials' => true,
 ];
 
