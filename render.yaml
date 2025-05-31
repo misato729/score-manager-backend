@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: score-manager-backend
+    env: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        value: base64:あとで設定
+      - key: APP_URL
+        value: https://your-app-name.onrender.com
