@@ -33,4 +33,27 @@ class ScoreController extends Controller
 
         return response()->json(['message' => 'Score updated']);
     }
+    public function userScores(Request $request)
+    {
+        $userId = $request->query('user');
+    
+        $results = DB::table('songs')
+            ->leftJoin('scores', function($join) use ($userId) {
+                $join->on('songs.id', '=', 'scores.song_id')
+                     ->where('scores.user_id', '=', $userId);
+            })
+            ->select(
+                'songs.id as song_id',
+                'songs.title',
+                'songs.jiriki_rank',
+                'scores.id as score_id',
+                'scores.rank',
+                'scores.fc',
+                'scores.user_id'
+            )
+            ->get();
+            
+        return response()->json($results);
+    }
+    
 }

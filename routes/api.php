@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
 
 // ✅ スコア取得（誰でも閲覧可能）
 Route::get('/scores', [ScoreController::class, 'index']);
+Route::get('/user-scores', [ScoreController::class, 'userScores']); // ←スコア未登録ユーザーのスコア取得API
 
 // ✅ スコア更新・アカウント削除（ログイン必須）
 Route::middleware('auth:sanctum')->group(function () {
