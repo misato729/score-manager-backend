@@ -13,7 +13,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'rbplus-rank-manager.site'], // 後で変える！！！！！！
+    'allowed_origins' => ['http://localhost:5173', 'http://rbplus-rank-manager.site'], // 後で変える！！！！！！
 
     'allowed_origins_patterns' => [],
 
