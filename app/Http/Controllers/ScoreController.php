@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Score;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ScoreController extends Controller
 {
@@ -64,7 +65,7 @@ class ScoreController extends Controller
             'rank' => ['nullable', 'string', 'max:10'],
             'fc' => ['required', 'boolean'],
         ]);
-    
+
         $score = Score::create($validated);
         return response()->json($score, 201);
     }
