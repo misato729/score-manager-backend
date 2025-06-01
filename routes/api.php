@@ -37,3 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/scores/{score}', [ScoreController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
+
+
+Route::middleware('auth:sanctum')->post('/scores', [ScoreController::class, 'store']);
+
+
+

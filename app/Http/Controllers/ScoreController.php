@@ -36,7 +36,7 @@ class ScoreController extends Controller
     public function userScores(Request $request)
     {
         $userId = $request->query('user');
-    
+
         $results = DB::table('songs')
             ->leftJoin('scores', function($join) use ($userId) {
                 $join->on('songs.id', '=', 'scores.song_id')
@@ -52,8 +52,21 @@ class ScoreController extends Controller
                 'scores.user_id'
             )
             ->get();
-            
+
         return response()->json($results);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer'],
+            'song_id' => ['required', 'integer'],
+            'rank' => ['nullable', 'string', 'max:10'],
+            'fc' => ['required', 'boolean'],
+        ]);
+    
+        $score = Score::create($validated);
+        return response()->json($score, 201);
     }
     
 }
