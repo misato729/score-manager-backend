@@ -13,7 +13,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'https://rbplus-rank-manager.site', 'https://score-manager-frontend-stg.vercel.app'],
+    'allowed_origins' => ['http://localhost:5173',
+     'https://rbplus-rank-manager.site', 
+     'https://score-manager-frontend-stg.vercel.app',
+     'https://api.rbplus-rank-manager.site'],
 
     'allowed_origins_patterns' => [],
 
