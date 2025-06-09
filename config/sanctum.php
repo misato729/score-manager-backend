@@ -14,7 +14,13 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost,127.0.0.1,::1,api.rbplus-rank-manager.site,rbplus-rank-manager.site')),
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 
+    'localhost,127.0.0.1,::1,
+    api.rbplus-rank-manager.site,
+    rbplus-rank-manager.site,
+    score-manager-frontend-stg.vercel.app,
+    https://score-manager-backend-stg.onrender.com',
+)),
 
 
     /*
