@@ -56,4 +56,17 @@ class UserController extends Controller
         return response()->json(['message' => 'Account deleted']);
     }
 
+    public function updateTarget(Request $request)
+    {
+        $user = $request->user(); // ログインユーザー取得
+        $validated = $request->validate([
+            'target' => 'required|string|max:10', // 例: "AAA+", "95%" など
+        ]);
+        $user->target = $validated['target'];
+        $user->save();
+    
+        return response()->json(['message' => 'Target updated successfully']);
+    }
+
+
 }

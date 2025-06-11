@@ -38,7 +38,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
 
+// ✅ ターゲット更新（ログイン必須）
+Route::middleware('auth:sanctum')->put('/users/target', [UserController::class, 'updateTarget']);
 
+// ✅ スコア登録（ログイン必須）
 Route::middleware('auth:sanctum')->post('/scores', [ScoreController::class, 'store']);
 
 
