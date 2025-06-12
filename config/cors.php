@@ -9,6 +9,7 @@ return [
         'register-user',
         'sanctum/csrf-cookie',
         '/user',
+        'users/*'
     ],
 
     'allowed_methods' => ['*'],

@@ -44,5 +44,7 @@ Route::middleware('auth:sanctum')->put('/users/target', [UserController::class, 
 // ✅ スコア登録（ログイン必須）
 Route::middleware('auth:sanctum')->post('/scores', [ScoreController::class, 'store']);
 
+// ✅ ターゲット更新（ログイン必須）
+Route::middleware('auth:sanctum')->put('/users/target', [UserController::class, 'updateTarget']);
 
 
