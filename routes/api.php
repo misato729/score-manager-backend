@@ -48,3 +48,13 @@ Route::middleware('auth:sanctum')->post('/scores', [ScoreController::class, 'sto
 Route::middleware('auth:sanctum')->put('/users/target', [UserController::class, 'updateTarget']);
 
 
+// ✅ 行脚店舗一覧（誰でも閲覧可能）
+use App\Http\Controllers\ShopController;
+
+Route::get('/shops', [ShopController::class, 'index']);
+
+
+// ✅ 行脚店舗登録（ログイン必須）
+use App\Http\Controllers\VisitController;
+
+Route::middleware('auth:sanctum')->post('/visit', [VisitController::class, 'store']);
