@@ -14,28 +14,28 @@ class VisitController extends Controller
         $request->validate([
             'shop_id' => 'required|exists:shops,id',
         ]);
-
+    
         $userId = $request->user()->id;
         $shopId = $request->input('shop_id');
-
+    
         // すでにチェックイン済みか？
         $alreadyVisited = UserVisit::where('user_id', $userId)
             ->where('shop_id', $shopId)
             ->exists();
-
+    
         if ($alreadyVisited) {
             return response()->json(['message' => 'すでにチェックイン済みです'], 409);
         }
-
-        // チェックイン登録
+    
+        // チェックイン登録（created_at に訪問時刻が自動で入る）
         UserVisit::create([
             'user_id' => $userId,
             'shop_id' => $shopId,
-            'visited_at' => now(),
         ]);
-
+    
         return response()->json(['message' => 'チェックインが完了しました'], 201);
     }
+    
     // 行脚済み店舗一覧取得    
     public function index(Request $request)
 {
@@ -43,7 +43,8 @@ class VisitController extends Controller
 
     $visited = UserVisit::with('shop')
         ->where('user_id', $userId)
-        ->orderBy('visited_at', 'desc')
+        ->orderBy('created_at', 'desc')
+
         ->get();
 
     return response()->json($visited);
@@ -60,17 +61,17 @@ public function publicIndex(Request $request)
     }
 
     $visited = UserVisit::with('shop')
-        ->where('user_id', $userId)
-        ->orderBy('visited_at', 'desc')
-        ->get()
-        ->map(function ($visit) {
-            return [
-                'id' => $visit->shop->id,
-                'name' => $visit->shop->name,
-                'address' => $visit->shop->address,
-                'visited_at' => $visit->visited_at,
-            ];
-        });
+    ->where('user_id', $userId)
+    ->orderBy('created_at', 'desc')
+    ->get()
+    ->map(function ($visit) {
+        return [
+            'id' => $visit->shop->id,
+            'name' => $visit->shop->name,
+            'address' => $visit->shop->address,
+            'created_at' => $visit->created_at, // ← これを追加！
+        ];
+    });
 
     return response()->json($visited);
 }
