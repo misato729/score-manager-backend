@@ -10,7 +10,6 @@ class UserVisit extends Model
     protected $fillable = [
         'user_id',
         'shop_id',
-        'visited_at',
     ];
 
     public $timestamps = true;
