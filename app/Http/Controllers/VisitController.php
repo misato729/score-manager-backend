@@ -61,17 +61,17 @@ public function publicIndex(Request $request)
     }
 
     $visited = UserVisit::with('shop')
-        ->where('user_id', $userId)
-        ->orderBy('created_at', 'desc')
-        ->get()
-        ->map(function ($visit) {
-            return [
-                'id' => $visit->shop->id,
-                'name' => $visit->shop->name,
-                'address' => $visit->shop->address,
-                'visited_at' => $visit->visited_at,
-            ];
-        });
+    ->where('user_id', $userId)
+    ->orderBy('created_at', 'desc')
+    ->get()
+    ->map(function ($visit) {
+        return [
+            'id' => $visit->shop->id,
+            'name' => $visit->shop->name,
+            'address' => $visit->shop->address,
+            'created_at' => $visit->created_at, // ← これを追加！
+        ];
+    });
 
     return response()->json($visited);
 }
