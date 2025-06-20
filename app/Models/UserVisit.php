@@ -15,4 +15,11 @@ class UserVisit extends Model
     ];
 
     public $timestamps = true;
+
+    public function shop()
+{
+    return $this->belongsTo(Shop::class, 'shop_id');
 }
+
+}
+
