@@ -48,7 +48,7 @@ Route::middleware('auth:sanctum')->post('/scores', [ScoreController::class, 'sto
 Route::middleware('auth:sanctum')->put('/users/target', [UserController::class, 'updateTarget']);
 
 
-// ✅ 行脚店舗一覧（誰でも閲覧可能）
+// ✅ 店舗一覧（誰でも閲覧可能）
 use App\Http\Controllers\ShopController;
 
 Route::get('/shops', [ShopController::class, 'index']);
@@ -58,3 +58,8 @@ Route::get('/shops', [ShopController::class, 'index']);
 use App\Http\Controllers\VisitController;
 
 Route::middleware('auth:sanctum')->post('/visit', [VisitController::class, 'store']);
+
+Route::middleware('auth:sanctum')->get('/visited', [VisitController::class, 'index']);
+
+// ✅ 任意ユーザーの行脚履歴取得（非ログインでもOK）
+Route::get('/visited-shops', [VisitController::class, 'publicIndex']);
