@@ -10,6 +10,7 @@ class ShopController extends Controller
 {
     public function index()
     {
+        $shops = Shop::all();
         return Shop::select(
             'id',
             'name',
@@ -22,6 +23,9 @@ class ShopController extends Controller
         )
         ->where('is_deleted', false)
         ->get();
+        return view('shops', compact('shops'));
+
     }
+
 }
 

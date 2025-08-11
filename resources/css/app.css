@@ -1,0 +1,13 @@
+/* resources/css/app.css */
+
+@import "tailwindcss";
+
+/* どのテンプレートを走査するか（v4の @source） */
+
+@source "./resources/**/*.blade.php";
+@source "./resources/**/*.js";
+@source "./resources/**/*.vue";
+
+/* ←デバッグ用に入れてた枠は消します
+body { outline: 3px solid rgba(99,102,241,.25); }
+*/
