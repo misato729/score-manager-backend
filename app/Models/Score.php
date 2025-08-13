@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Score extends Model
 {
     // ⬇ 編集を許可するカラムを指定（ホワイトリスト）
-    protected $fillable = ['user_id', 'song_id', 'rank', 'fc'];
+    protected $fillable = ['user_id', 'song_id', 'rank', 'fc', 'memo'];
 
     // ⬇ リレーション（1つのスコアは1つの曲に属する）
     public function song()
