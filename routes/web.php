@@ -42,15 +42,3 @@ Route::prefix('admin')
         Route::put('shops/{shop}', [AdminShopController::class, 'update'])->name('shops.update');
         // 他の管理画面ルートもここにまとめて追加
     });
-
-/*
-|--------------------------------------------------------------------------
-| その他の公開APIや画面
-|--------------------------------------------------------------------------
-*/
-Route::get('songs', [\App\Http\Controllers\SongController::class, 'index']);
-
-// （必要なら）ログイン状態のユーザー情報を返す
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-    return response()->json($request->user());
-});
