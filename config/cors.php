@@ -3,15 +3,9 @@
 return [
 
     'paths' => [
-        'api/*',
-        'login',
-        'logout',
-        'register-user',
+        'api/*',                // ✅ これで /api/login, /api/user, ... を網羅
         'sanctum/csrf-cookie',
-        '/user',
-        'users/*',
-        'visit',
-        'shops',
+        'admin/*'
     ],
 
     'allowed_methods' => ['*'],
