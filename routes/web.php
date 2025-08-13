@@ -4,35 +4,53 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminShopController;
+use App\Http\Controllers\Auth\LoginController;
 
+/*
+|--------------------------------------------------------------------------
+| 公開ページ
+|--------------------------------------------------------------------------
+*/
 Route::get('/', function () {
     return view('welcome');
 });
 
+/*
+|--------------------------------------------------------------------------
+| ログイン / ログアウト
+|--------------------------------------------------------------------------
+*/
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+});
+
+Route::post('/logout', [LoginController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
+
+/*
+|--------------------------------------------------------------------------
+| 管理画面ルート（ID=10のみアクセス可）
+|--------------------------------------------------------------------------
+*/
 Route::prefix('admin')
-    ->middleware(['auth', 'only10']) // ← ここ大事。auth → only10 の順で
+    ->middleware(['auth', 'only10']) // auth でログイン必須 → only10 でID=10制限
     ->group(function () {
         Route::get('shops', [AdminShopController::class, 'index'])->name('shops.index');
         Route::get('shops/{shop}/edit', [AdminShopController::class, 'edit'])->name('shops.edit');
         Route::put('shops/{shop}', [AdminShopController::class, 'update'])->name('shops.update');
-        // ほかの管理画面ルートもここに入れる
+        // 他の管理画面ルートもここにまとめて追加
     });
 
+/*
+|--------------------------------------------------------------------------
+| その他の公開APIや画面
+|--------------------------------------------------------------------------
+*/
 Route::get('songs', [\App\Http\Controllers\SongController::class, 'index']);
 
-
-Route::middleware(['web', 'auth:sanctum'])->get('/user', function (Request $request) {
+// （必要なら）ログイン状態のユーザー情報を返す
+Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return response()->json($request->user());
 });
-
-
-Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
-    Auth::guard('web')->logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    return response()->json(['message' => 'Logged out']);
-});
-
-// web.php の末尾などに追加
-require __DIR__.'/auth.php';
-
