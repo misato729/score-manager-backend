@@ -17,8 +17,9 @@ class RestrictToUserIdTen
             return redirect()->route('login');
         }
 
-        // ID=10（ローカルは15） 以外は 403
-        if (Auth::id() !== 15) {
+        // ID=10（ローカルは15）を.envで管理
+        $allowedId = (int) env('ALLOWED_USER_ID', 10); // デフォルト10
+        if (Auth::id() !== $allowedId) {
             abort(403, 'Forbidden');
         }
 
