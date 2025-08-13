@@ -7,16 +7,19 @@ use Illuminate\Http\Request;
 class AdminShopController extends Controller
 {
     public function index(Request $request)
-    {
-        $direction = $request->get('direction', 'asc') === 'desc' ? 'desc' : 'asc';
-        // ショップ一覧を取得
-        $shops = Shop::all()
-        ->orderBy('id', $direction);
+{
+    $shops = \App\Models\Shop::query()
+        ->when($request->filled('keyword'), function ($query) use ($request) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('address', 'like', '%'.$request->keyword.'%');
+            });
+        })
+        ->orderBy('id', 'asc') // ID昇順
+        ->get();               // ← ページネーションではなく全件取得
 
-        // ビューにデータを渡して表示
-        return view('shops.index', compact('shops'));
-    }
-
+    return view('shops.index', compact('shops'));
+}
     public function edit($id)
     {
         $shop = Shop::findOrFail($id);
