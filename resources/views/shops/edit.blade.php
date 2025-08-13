@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ショップ編集 | 管理システム</title>
+  <title>設置店舗編集 | 管理システム</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -77,8 +77,8 @@
   <div class="shell">
     <div class="header">
       <div>
-        <div class="crumbs"><a class="link" href="{{ url('/') }}">Home</a> / <a class="link" href="{{ route('shops.index') }}">ショップ一覧</a> / 編集</div>
-        <h1 class="title">ショップ編集 <span class="muted">#{{ $shop->id }}</span></h1>
+        <div class="crumbs"><a class="link" href="{{ url('/') }}">Home</a> / <a class="link" href="{{ route('shops.index') }}">設置店舗一覧</a> / 編集</div>
+        <h1 class="title">設置店舗編集 <span class="muted">#{{ $shop->id }}</span></h1>
       </div>
       <div>
         @if($shop->is_deleted)
