@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ショップ一覧 | 管理システム</title>
+  <title>設置店舗一覧 | 管理システム</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -114,8 +114,8 @@
   <div class="shell">
     <div class="header">
       <div>
-        <div class="crumbs"><a class="link" href="{{ url('/') }}">Home</a> / ショップ一覧</div>
-        <h1 class="title" style="margin:.25rem 0 0">ショップ一覧</h1>
+        <div class="crumbs"><a class="link" href="{{ url('/') }}">Home</a> / 設置店舗一覧</div>
+        <h1 class="title" style="margin:.25rem 0 0">設置店舗一覧</h1>
       </div>
 
       <div class="actions">
@@ -161,7 +161,16 @@
         <table aria-label="ショップ一覧">
           <thead>
             <tr>
-              <th style="width:80px">ID</th>
+                <th style="width:80px">
+                    <a class="link"
+                       href="{{ route('shops.index',
+                              array_merge(request()->query(), [
+                                'direction' => request('direction','asc') === 'asc' ? 'desc' : 'asc'
+                              ])) }}">
+                      ID
+                      @if(request('direction','asc') === 'asc') ▲ @else ▼ @endif
+                    </a>
+                </th>
               <th>店舗名</th>
               <th>住所</th>
               <th class="mono">緯度</th>

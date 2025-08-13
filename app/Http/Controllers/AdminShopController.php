@@ -6,10 +6,12 @@ use Illuminate\Http\Request;
 
 class AdminShopController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $direction = $request->get('direction', 'asc') === 'desc' ? 'desc' : 'asc';
         // ショップ一覧を取得
-        $shops = Shop::all();
+        $shops = Shop::all()
+        ->orderBy('id', $direction);
 
         // ビューにデータを渡して表示
         return view('shops.index', compact('shops'));
