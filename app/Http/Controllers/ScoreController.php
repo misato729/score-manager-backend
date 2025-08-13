@@ -28,6 +28,7 @@ class ScoreController extends Controller
         $validated = $request->validate([
             'rank' => ['nullable', 'string', 'max:10'],
             'fc' => ['required', 'boolean'],
+            'memo' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
         $score->update($validated);
@@ -50,7 +51,8 @@ class ScoreController extends Controller
                 'scores.id as score_id',
                 'scores.rank',
                 'scores.fc',
-                'scores.user_id'
+                'scores.user_id',
+                'scores.memo'
             )
             ->get();
 
@@ -64,10 +66,11 @@ class ScoreController extends Controller
             'song_id' => ['required', 'integer'],
             'rank' => ['nullable', 'string', 'max:10'],
             'fc' => ['required', 'boolean'],
+            'memo' => ['sometimes','nullable','string','max:255'],
         ]);
 
         $score = Score::create($validated);
         return response()->json($score, 201);
     }
-    
+
 }
