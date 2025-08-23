@@ -1,6 +1,9 @@
 # 概要
 
-本プロジェクトは、[REFLEC BEAT plus レベル11 難易度表＆クリアランク管理サイト](https://rbplus-rank-manager.site)（以下、フロント）のバックエンドである。
+本プロジェクトは、[REFLEC BEAT plus レベル11 難易度表＆クリアランク管理サイト](https://rbplus-rank-manager.site/)のバックエンドリポジトリである。
+
+　※フロントエンドのリポジトリは[こちら](https://github.com/misato729/score-manager-frontend)
+
 用途は以下の2つである。
 
 ① フロントのAPIリクエスト（スコアの取得・更新、設置店舗の取得など）に返答する。
@@ -72,6 +75,10 @@
 - ルーティングは `routes/web.php` に定義、`AdminShopController` で処理
 - 管理画面とAPIのルーティングを分離（`web.php` と `api.php`）
 - HTTPS強制設定（`AppServiceProvider` + RenderのForce HTTPS）
+
+### 関連記事
+- [Laravel Bladeで管理画面を作ってみた【MVC】](https://qiita.com/misato729/items/138a89c3ad8b3e2f0716)  
+  → 管理画面（店舗CRUD）を作る過程を整理した学習アウトプット記事です
 
 # 今後の展望
 現在は設置店舗情報の管理機能のみだが、ユーザー管理機能や楽曲管理機能もつけていきたい。
