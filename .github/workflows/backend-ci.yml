@@ -53,5 +53,6 @@ jobs:
           ls -l database || true
           php -r 'echo "DB file exists? ", file_exists("database/database.sqlite") ? "yes" : "no", PHP_EOL;'
 
-      - name: Run Tests (verbose)
-        run: php artisan test -vvv --stop-on-failure
+      - name: Run Tests
+        run: php artisan test --stop-on-failure --testdox
+
