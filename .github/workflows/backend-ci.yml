@@ -1,0 +1,50 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, sqlite3
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer deps
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare .env for testing (SQLite)
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          mkdir -p database
+          touch database/database.sqlite
+          php -r "file_put_contents('.env', PHP_EOL.'APP_ENV=testing'.PHP_EOL.'DB_CONNECTION=sqlite'.PHP_EOL.'DB_DATABASE='.__DIR__.'/database/database.sqlite', FILE_APPEND);"
+
+      - name: Run Migrations (testing DB)
+        run: php artisan migrate --force
+
+      # 任意: コードスタイルチェック（入れる場合は composer require laravel/pint --dev）
+      # - name: Lint (Laravel Pint)
+      #   run: composer pint -v --test
+
+      - name: Run Tests
+        run: php artisan test -q
