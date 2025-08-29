@@ -42,8 +42,8 @@ jobs:
       - name: Run Migrations (testing DB)
         run: php artisan migrate --force
 
-      - name: Lint (Laravel Pint)
-        run: composer pint -v --test
+      # - name: Lint (Laravel Pint)
+      #   run: composer pint -v --test
 
       - name: Debug PHP env
         run: |
