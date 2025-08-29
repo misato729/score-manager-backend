@@ -42,9 +42,16 @@ jobs:
       - name: Run Migrations (testing DB)
         run: php artisan migrate --force
 
-      # 任意: コードスタイルチェック（入れる場合は composer require laravel/pint --dev）
-      # - name: Lint (Laravel Pint)
-      #   run: composer pint -v --test
+      - name: Lint (Laravel Pint)
+        run: composer pint -v --test
 
-      - name: Run Tests
-        run: php artisan test -q
+      - name: Debug PHP env
+        run: |
+          php -v
+          php -m | grep -i sqlite || true
+          php artisan about || true
+          ls -l database || true
+          php -r 'echo "DB file exists? ", file_exists("database/database.sqlite") ? "yes" : "no", PHP_EOL;'
+
+      - name: Run Tests (verbose)
+        run: php artisan test -vvv --stop-on-failure
