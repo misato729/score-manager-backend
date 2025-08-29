@@ -10,6 +10,9 @@ use App\Http\Controllers\ScoreController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\VisitController;
 
+Route::get('/health', fn () => response()->json(['ok' => true], 200));
+
+
 // ✅ ログイン（セッションCookieを使うので web ミドルウェアを追加）
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('web'); // ← 重要
