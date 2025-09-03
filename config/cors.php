@@ -10,7 +10,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'https://rbplus-rank-manager.site'], // 後で変える！！！！！！
+    'allowed_origins' => ['http://localhost:5173', 'https://rbplus-rank-manager.site','https://preview.rbplus-rank-manager.site'], //
 
     'allowed_origins_patterns' => [
         '^https:\/\/[a-z0-9-]+\.vercel\.app$',            // すべての Vercel プレビュー Origin
