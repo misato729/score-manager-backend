@@ -12,7 +12,11 @@ return [
 
     'allowed_origins' => ['http://localhost:5173', 'https://rbplus-rank-manager.site'], // 後で変える！！！！！！
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '^https:\/\/[a-z0-9-]+\.vercel\.app$',            // すべての Vercel プレビュー Origin
+        '^https:\/\/score-manager-frontend\.vercel\.app$',// 固定vercelドメインがあれば
+        '^https:\/\/rbplus-rank-manager\.site$',
+    ],
 
     'allowed_headers' => ['*'],
 
