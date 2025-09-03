@@ -78,7 +78,7 @@
 
 ### 関連記事
 - [Laravel Bladeで管理画面を作ってみた【MVC】](https://qiita.com/misato729/items/138a89c3ad8b3e2f0716)  
-  → 管理画面（店舗CRUD）を作る過程を整理した学習アウトプット記事です
+  → 管理画面（店舗CRUD）を作る過程を整理した学習アウトプット記事です。
 
 # CI/CD
 本プロジェクトでは **GitHub Actions + Render** を用いた CI/CD を構築している。  
