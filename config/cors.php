@@ -8,7 +8,7 @@ return [
         'admin/*'
     ],
 
-    'allowed_methods' => ['*'],
+    'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => ['http://localhost:5173', 'https://rbplus-rank-manager.site','https://preview.rbplus-rank-manager.site'], //
 
