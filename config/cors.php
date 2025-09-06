@@ -14,8 +14,8 @@ return [
 
     'allowed_origins_patterns' => [
         '#^https://.*\.vercel\.app$#i',
-        '^https:\/\/rbplus-rank-manager\.site$',
-        '^https:\/\/preview\.rbplus-rank-manager\.site$', // ←これも必須
+        '#^https://rbplus-rank-manager\.site$#i',
+        '#^https://preview\.rbplus-rank-manager\.site$#i',
     ],
 
     'allowed_headers' => ['*'],
