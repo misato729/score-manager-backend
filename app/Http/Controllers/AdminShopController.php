@@ -8,18 +8,29 @@ class AdminShopController extends Controller
 {
     public function index(Request $request)
 {
-    $shops = \App\Models\Shop::query()
-        ->when($request->filled('keyword'), function ($query) use ($request) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%'.$request->keyword.'%')
-                    ->orWhere('address', 'like', '%'.$request->keyword.'%');
-            });
-        })
-        ->orderBy('id', 'asc') // ID昇順
-        ->get();               // ← ページネーションではなく全件取得
+    $keyword = $request->string('keyword')->toString();
 
-    return view('shops.index', compact('shops'));
+    // 共通クエリ（検索条件はそのまま）
+    $base = \App\Models\Shop::query()
+        ->when($keyword, function ($query) use ($keyword) {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', "%{$keyword}%")
+                  ->orWhere('address', 'like', "%{$keyword}%");
+            });
+        });
+
+    // 件数（同一条件で集計）
+    $totalCount     = (clone $base)->count();                           // 全 ○ 件
+    $publishedCount = (clone $base)->where('is_deleted', false)->count(); // 公開中 ○ 件
+
+    // 一覧本体（現状どおり全件取得）
+    $shops = (clone $base)
+        ->orderBy('id', 'asc')
+        ->get();
+
+    return view('shops.index', compact('shops', 'totalCount', 'publishedCount'));
 }
+
     public function edit($id)
     {
         $shop = Shop::findOrFail($id);

@@ -143,18 +143,11 @@
         {{-- ここに将来フィルタを追加（例：未削除のみ 等） --}}
       </div>
 
-      <!-- 件数などのメタ -->
-      <div class="meta">
-        @php
-          $isPaginator = method_exists($shops, 'total');
-        @endphp
-        @if($isPaginator)
-          全 <strong>{{ number_format($shops->total()) }}</strong> 件中
-          <strong>{{ number_format($shops->firstItem()) }}–{{ number_format($shops->lastItem()) }}</strong> を表示
-        @else
-          全 <strong>{{ number_format($shops->count()) }}</strong> 件を表示
-        @endif
-      </div>
+    <!-- 件数などのメタ -->
+    <div class="meta">
+        全 <strong>{{ number_format($totalCount) }}</strong> 件を表示
+        （公開中：<strong>{{ number_format($publishedCount) }}</strong> 件）
+    </div>
 
       <!-- Table -->
       <div class="table-wrap">
