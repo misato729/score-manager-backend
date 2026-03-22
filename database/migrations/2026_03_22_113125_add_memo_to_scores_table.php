@@ -10,12 +10,14 @@ return new class extends Migration
      * Run the migrations.
      */
     // migrationファイル
-public function up()
-{
-    Schema::table('scores', function (Blueprint $table) {
-        $table->string('memo')->nullable();
-    });
-}
+    public function up(): void
+    {
+        if (!Schema::hasColumn('scores', 'memo')) {
+            Schema::table('scores', function (Blueprint $table) {
+                $table->string('memo')->nullable();
+            });
+        }
+    }
 
     /**
      * Reverse the migrations.
