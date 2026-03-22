@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Score;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,12 +36,23 @@ class ScoreController extends Controller
 
         return response()->json(['message' => 'Score updated']);
     }
+
     public function userScores(Request $request)
     {
         $userId = $request->query('user');
 
+        if (!$userId) {
+            return response()->json(['error' => 'User ID is required'], 400);
+        }
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
         $results = DB::table('songs')
-            ->leftJoin('scores', function($join) use ($userId) {
+            ->leftJoin('scores', function ($join) use ($userId) {
                 $join->on('songs.id', '=', 'scores.song_id')
                      ->where('scores.user_id', '=', $userId);
             })
@@ -54,7 +66,11 @@ class ScoreController extends Controller
                 'scores.user_id',
                 'scores.memo'
             )
-            ->get();
+            ->get()
+            ->map(function ($item) use ($user) {
+                $item->user_name = $user->name;
+                return $item;
+            });
 
         return response()->json($results);
     }
@@ -72,5 +88,4 @@ class ScoreController extends Controller
         $score = Score::create($validated);
         return response()->json($score, 201);
     }
-
 }
