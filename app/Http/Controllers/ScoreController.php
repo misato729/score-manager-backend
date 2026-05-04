@@ -32,6 +32,10 @@ class ScoreController extends Controller
             'memo' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
+        if ($score->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $score->update($validated);
 
         return response()->json(['message' => 'Score updated']);
@@ -78,12 +82,13 @@ class ScoreController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => ['required', 'integer'],
             'song_id' => ['required', 'integer'],
             'rank' => ['nullable', 'string', 'max:10'],
             'fc' => ['required', 'boolean'],
             'memo' => ['sometimes','nullable','string','max:255'],
         ]);
+
+        $validated['user_id'] = $request->user()->id;
 
         $score = Score::create($validated);
         return response()->json($score, 201);

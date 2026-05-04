@@ -12,7 +12,6 @@ class UserController extends Controller
 {
     public function store(Request $request)
     {
-        \Log::info('🔥 register hit! data:', $request->all());
         // ✅ バリデーション（必要に応じて調整）
         $request->validate([
             'name' => 'required|string|max:255',
