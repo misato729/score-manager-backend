@@ -1,5 +1,5 @@
 # PHPとComposerが使えるベースのイメージ
-FROM php:8.2-fpm
+FROM php:8.3-fpm
 
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \
@@ -35,4 +35,4 @@ EXPOSE 10000
 RUN php artisan config:clear && php artisan route:clear && php artisan view:clear
 
 # マイグレーションしてからサーバー起動
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=10000
+CMD sh -c "php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=10000"
