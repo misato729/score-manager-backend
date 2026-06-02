@@ -1,10 +1,9 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminShopController;
 use App\Http\Controllers\Auth\LoginController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +37,8 @@ Route::prefix('admin')
     ->middleware(['auth', 'only10']) // auth でログイン必須 → only10 でID=10制限
     ->group(function () {
         Route::get('shops', [AdminShopController::class, 'index'])->name('shops.index');
+        Route::get('shops/create', [AdminShopController::class, 'create'])->name('shops.create');
+        Route::post('shops', [AdminShopController::class, 'store'])->name('shops.store');
         Route::get('shops/{shop}/edit', [AdminShopController::class, 'edit'])->name('shops.edit');
         Route::put('shops/{shop}', [AdminShopController::class, 'update'])->name('shops.update');
         // 他の管理画面ルートもここにまとめて追加
