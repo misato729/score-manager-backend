@@ -119,6 +119,7 @@
       </div>
 
       <div class="actions">
+        <a class="btn primary" href="{{ route('shops.create') }}">新規登録</a>
         <a class="btn" href="{{ url('/admin/shops') }}">再読み込み</a>
         <form method="POST" action="{{ route('logout') }}">
           @csrf
