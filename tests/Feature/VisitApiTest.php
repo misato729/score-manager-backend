@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Shop;
+use App\Models\User;
 use App\Models\UserVisit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -20,7 +20,7 @@ class VisitApiTest extends TestCase
         $shop = Shop::factory()->create();
 
         $this->postJson('/api/visit', ['shop_id' => $shop->id])
-             ->assertStatus(401);
+            ->assertStatus(401);
     }
 
     #[Test]
@@ -31,8 +31,8 @@ class VisitApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/visit', ['shop_id' => $shop->id])
-             ->assertCreated()
-             ->assertJson(['message' => 'チェックインが完了しました']);
+            ->assertCreated()
+            ->assertJson(['message' => 'チェックインが完了しました']);
 
         $this->assertDatabaseHas('user_visits', [
             'user_id' => $user->id,
@@ -50,8 +50,8 @@ class VisitApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/visit', ['shop_id' => $shop->id])
-             ->assertStatus(409)
-             ->assertJson(['message' => 'すでにチェックイン済みです']);
+            ->assertStatus(409)
+            ->assertJson(['message' => 'すでにチェックイン済みです']);
     }
 
     #[Test]
@@ -64,17 +64,17 @@ class VisitApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->getJson('/api/visited')
-             ->assertOk()
-             ->assertJsonIsArray()
-             ->assertJsonFragment(['name' => $shop->name]);
+            ->assertOk()
+            ->assertJsonIsArray()
+            ->assertJsonFragment(['name' => $shop->name]);
     }
 
     #[Test]
     public function public_index_requires_user_query(): void
     {
         $this->getJson('/api/visited-shops')
-             ->assertStatus(400)
-             ->assertJson(['message' => 'userパラメータが必要です']);
+            ->assertStatus(400)
+            ->assertJson(['message' => 'userパラメータが必要です']);
     }
 
     #[Test]
@@ -85,13 +85,24 @@ class VisitApiTest extends TestCase
         UserVisit::factory()->create(['user_id' => $user->id, 'shop_id' => $shop->id]);
 
         $this->getJson("/api/visited-shops?user={$user->id}")
-             ->assertOk()
-             ->assertJsonIsArray()
-             ->assertJsonFragment([
-                 'id'   => $shop->id,
-                 'name' => $shop->name,
-                 'address' => $shop->address,
-             ]);
+            ->assertOk()
+            ->assertJsonPath('user_name', $user->name)
+            ->assertJsonFragment([
+                'id' => $shop->id,
+                'name' => $shop->name,
+                'address' => $shop->address,
+            ]);
+    }
+
+    #[Test]
+    public function public_index_returns_user_name_when_user_has_no_visits(): void
+    {
+        $user = User::factory()->create();
+
+        $this->getJson("/api/visited-shops?user={$user->id}")
+            ->assertOk()
+            ->assertJsonPath('user_name', $user->name)
+            ->assertJsonPath('visited_shops', []);
     }
 
     // 任意：バリデーション422を抑えておくとより実務的
@@ -102,6 +113,6 @@ class VisitApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/visit', ['shop_id' => 999999])
-             ->assertStatus(422); // exists:shops,id によるバリデーション
+            ->assertStatus(422); // exists:shops,id によるバリデーション
     }
 }
