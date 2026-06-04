@@ -25,6 +25,7 @@ class AdminShopController extends Controller
 
     // 一覧本体（現状どおり全件取得）
     $shops = (clone $base)
+        ->orderBy('prefecture_code', 'asc')
         ->orderBy('id', 'asc')
         ->get();
 
@@ -42,6 +43,7 @@ class AdminShopController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
+            'prefecture_code' => 'nullable|integer|min:1|max:47',
             'lat' => 'required|numeric',
             'lng' => 'required|numeric',
             'price' => 'nullable|numeric',

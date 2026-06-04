@@ -14,6 +14,7 @@ class ShopFactory extends Factory
         return [
             'name'               => $this->faker->company(),
             'address'            => $this->faker->address(),
+            'prefecture_code'    => $this->faker->numberBetween(1, 47),
             'lat'                => $this->faker->latitude(),
             'lng'                => $this->faker->longitude(),
             'price'              => 100,
