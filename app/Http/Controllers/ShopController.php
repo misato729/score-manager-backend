@@ -14,6 +14,7 @@ class ShopController extends Controller
             'id',
             'name',
             'address',
+            'prefecture_code',
             'lat',
             'lng',
             'price',
@@ -21,7 +22,8 @@ class ShopController extends Controller
             'description'
         )
         ->where('is_deleted', false)
+        ->orderBy('prefecture_code', 'asc')
+        ->orderBy('id', 'asc')
         ->get();
     }
 }
-

@@ -14,7 +14,7 @@ class AdminShopTest extends TestCase
     #[Test]
     public function create_page_is_visible_to_allowed_admin(): void
     {
-        $admin = User::factory()->create(['id' => 10]);
+        $admin = $this->allowedAdmin();
 
         $this->actingAs($admin)
             ->get('/admin/shops/create')
@@ -25,7 +25,7 @@ class AdminShopTest extends TestCase
     #[Test]
     public function admin_can_store_new_shop(): void
     {
-        $admin = User::factory()->create(['id' => 10]);
+        $admin = $this->allowedAdmin();
 
         $this->actingAs($admin)
             ->post('/admin/shops', [
@@ -42,10 +42,16 @@ class AdminShopTest extends TestCase
         $this->assertDatabaseHas('shops', [
             'name' => 'タイトーステーション大宮店',
             'address' => '埼玉県さいたま市大宮区大門町1-1',
+            'prefecture_code' => 11,
             'price' => 120,
             'number_of_machine' => 1,
             'description' => '大宮駅東口徒歩1分',
             'is_deleted' => false,
         ]);
+    }
+
+    private function allowedAdmin(): User
+    {
+        return User::factory()->create(['id' => (int) env('ALLOWED_USER_ID', 10)]);
     }
 }

@@ -29,4 +29,24 @@ class ShopsApiTest extends TestCase
              ->assertOk()
              ->assertJsonFragment(['name' => 'Test Arcade']);
     }
+
+    #[Test]
+    public function index_orders_shops_by_prefecture_code_then_id(): void
+    {
+        $okinawa = Shop::factory()->create([
+            'name' => 'モーリーファンタジー那覇',
+            'address' => '沖縄県那覇市金城5-10-2',
+            'prefecture_code' => 47,
+        ]);
+        $saitama = Shop::factory()->create([
+            'name' => 'タイトーステーション大宮店',
+            'address' => '埼玉県さいたま市大宮区',
+            'prefecture_code' => 11,
+        ]);
+
+        $this->getJson('/api/shops')
+             ->assertOk()
+             ->assertJsonPath('0.id', $saitama->id)
+             ->assertJsonPath('1.id', $okinawa->id);
+    }
 }

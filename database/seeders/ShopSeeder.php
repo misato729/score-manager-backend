@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Shop;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 
 class ShopSeeder extends Seeder
 {
@@ -24,12 +23,25 @@ class ShopSeeder extends Seeder
             Shop::create([
                 'name' => $data['name'],
                 'address' => $data['address'],
+                'prefecture_code' => $data['prefecture_code'] ?: $this->prefectureCodeFor($data['address']),
                 'lat' => $data['lat'],
                 'lng' => $data['lng'],
                 'price' => $data['price'],
                 'number_of_machine' => $data['number_of_machine'],
+                'description' => $data['description'],
                 'is_deleted' => false, // デフォルトで false
             ]);
         }
+    }
+
+    private function prefectureCodeFor(string $address): ?int
+    {
+        foreach (config('prefectures') as $code => $prefecture) {
+            if (str_starts_with($address, $prefecture)) {
+                return $code;
+            }
+        }
+
+        return null;
     }
 }

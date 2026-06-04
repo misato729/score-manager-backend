@@ -115,6 +115,12 @@
         </div>
 
         <div class="form-row">
+          <label for="prefecture_code">都道府県コード</label>
+          <input type="number" id="prefecture_code" name="prefecture_code" min="1" max="47" step="1" value="{{ old('prefecture_code', $shop->prefecture_code) }}">
+          @error('prefecture_code') <div class="error">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="form-row">
           <label for="lat">緯度 <span class="muted">(−90〜90)</span></label>
           <input type="number" step="0.0000001" inputmode="decimal" id="lat" name="lat" value="{{ old('lat', $shop->lat) }}" required>
           @error('lat') <div class="error">{{ $message }}</div> @enderror

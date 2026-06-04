@@ -26,6 +26,7 @@ class AdminShopController extends Controller
 
         // 一覧本体（現状どおり全件取得）
         $shops = (clone $base)
+            ->orderBy('prefecture_code', 'asc')
             ->orderBy('id', 'asc')
             ->get();
 
@@ -40,6 +41,7 @@ class AdminShopController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateShop($request);
+        $data['prefecture_code'] = ($data['prefecture_code'] ?? null) ?: $this->prefectureCodeFor($data['address']);
         $data['is_deleted'] = $request->has('is_deleted');
 
         Shop::create($data);
@@ -57,6 +59,7 @@ class AdminShopController extends Controller
     public function update(Request $request, $id)
     {
         $data = $this->validateShop($request);
+        $data['prefecture_code'] = ($data['prefecture_code'] ?? null) ?: $this->prefectureCodeFor($data['address']);
 
         // 論理削除の値を設定（チェックされていない場合はfalse）
         $data['is_deleted'] = $request->has('is_deleted');
@@ -72,11 +75,23 @@ class AdminShopController extends Controller
         return $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
+            'prefecture_code' => 'nullable|integer|min:1|max:47',
             'lat' => 'required|numeric',
             'lng' => 'required|numeric',
             'price' => 'nullable|numeric',
             'number_of_machine' => 'nullable|integer',
             'description' => 'nullable|string|max:1000',
         ]);
+    }
+
+    private function prefectureCodeFor(string $address): ?int
+    {
+        foreach (config('prefectures') as $code => $prefecture) {
+            if (str_starts_with($address, $prefecture)) {
+                return $code;
+            }
+        }
+
+        return null;
     }
 }
