@@ -25,8 +25,8 @@ class UserApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->getJson('/api/user')
-             ->assertOk()
-             ->assertJsonPath('id', $user->id);
+            ->assertOk()
+            ->assertJsonPath('id', $user->id);
     }
 
     #[Test]
@@ -38,11 +38,41 @@ class UserApiTest extends TestCase
         $payload = ['target' => 'AAA']; // 仕様に合わせて変更
 
         $this->putJson('/api/users/target', $payload)
-             ->assertOk();
+            ->assertOk();
 
         $this->assertDatabaseHas('users', [
-            'id'     => $user->id,
+            'id' => $user->id,
             'target' => 'AAA',
         ]);
+    }
+
+    #[Test]
+    public function protected_test_user_cannot_delete_their_account(): void
+    {
+        $user = User::factory()->create(['id' => 8]);
+        Sanctum::actingAs($user);
+
+        $this->deleteJson('/api/users/8')
+            ->assertForbidden()
+            ->assertJson([
+                'message' => 'This account cannot be deleted',
+            ]);
+
+        $this->assertDatabaseHas('users', ['id' => 8]);
+    }
+
+    #[Test]
+    public function regular_user_can_delete_their_account(): void
+    {
+        $user = User::factory()->create(['id' => 9]);
+        Sanctum::actingAs($user);
+
+        $this->deleteJson('/api/users/9')
+            ->assertOk()
+            ->assertJson([
+                'message' => 'Account deleted',
+            ]);
+
+        $this->assertDatabaseMissing('users', ['id' => 9]);
     }
 }

@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Song;
 use App\Models\Score;
+use App\Models\Song;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    private const PROTECTED_USER_ID = 8;
+
     public function store(Request $request)
     {
         // ✅ バリデーション（必要に応じて調整）
@@ -44,14 +46,18 @@ class UserController extends Controller
     public function destroy($id, Request $request)
     {
         $user = User::findOrFail($id);
-    
+
         // ✅ 修正：auth() ではなく request->user()
-        if ($request->user()->id !== (int)$id) {
+        if ($request->user()->id !== (int) $id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-    
+
+        if ($user->id === self::PROTECTED_USER_ID) {
+            return response()->json(['message' => 'This account cannot be deleted'], 403);
+        }
+
         $user->delete();
-    
+
         return response()->json(['message' => 'Account deleted']);
     }
 
@@ -63,9 +69,7 @@ class UserController extends Controller
         ]);
         $user->target = $validated['target'];
         $user->save();
-    
+
         return response()->json(['message' => 'Target updated successfully']);
     }
-
-
 }
