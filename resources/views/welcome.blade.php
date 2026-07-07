@@ -182,6 +182,11 @@
             店舗一覧画面へ
           </a>
 
+          <a class="btn" href="{{ route('songs.index') }}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-2-2.83M21 16a3 3 0 1 1-2-2.83M9 9l12-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            楽曲一覧画面へ
+          </a>
+
           @guest
             <a class="btn secondary" href="{{ route('login') }}">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -207,10 +212,11 @@
         <ul class="list">
           <li><span>権限制御</span><span class="muted">ID=10のみ / <code class="mono">only10</code></span></li>
           <li><span>セッション</span><span class="muted">webガード / CSRF保護</span></li>
+          <li><span>楽曲管理</span><span class="muted">一覧表示 / 編集</span></li>
           <li><span>UI</span><span class="muted">グラス×ダーク / レスポンシブ</span></li>
         </ul>
         <div style="margin-top:14px; font-size:.92rem" class="muted">
-          まずは「店舗一覧画面へ」から編集を始めてください。
+          店舗一覧または楽曲一覧から管理を始めてください。
         </div>
       </aside>
     </div>
