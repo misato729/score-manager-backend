@@ -32,7 +32,9 @@
     .form-grid{display:grid; grid-template-columns:1fr; gap:16px}
     .form-row{display:flex; flex-direction:column; gap:6px}
     label{font-weight:700}
-    input[type=text]{width:100%; padding:.7rem .8rem; border-radius:12px; border:1px solid var(--stroke); background:rgba(255,255,255,.04); color:var(--text); outline:none}
+    input[type=text],select{width:100%; padding:.7rem .8rem; border-radius:12px; border:1px solid var(--stroke); background:rgba(255,255,255,.04); color:var(--text); outline:none}
+    select{appearance:auto}
+    select option{background:#0b0f1a; color:var(--text)}
     .btn{appearance:none; border:1px solid var(--stroke); background:rgba(255,255,255,.06); color:var(--text); padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:8px; text-decoration:none}
     .btn:hover{background:rgba(255,255,255,.1)}
     .primary{border-color:transparent; background:linear-gradient(135deg,var(--accent1),var(--accent2)); color:#fff; box-shadow:0 10px 24px rgba(108,140,255,.35)}
@@ -73,7 +75,11 @@
 
         <div class="form-row">
           <label for="jiriki_rank">地力ランク</label>
-          <input type="text" id="jiriki_rank" name="jiriki_rank" value="{{ old('jiriki_rank', $song->jiriki_rank) }}" required>
+          <select id="jiriki_rank" name="jiriki_rank" required>
+            @foreach($jirikiRanks as $rank)
+              <option value="{{ $rank }}" @selected(old('jiriki_rank', $song->jiriki_rank) === $rank)>{{ $rank }}</option>
+            @endforeach
+          </select>
           @error('jiriki_rank') <div class="error">{{ $message }}</div> @enderror
         </div>
       </div>
