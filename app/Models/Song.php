@@ -9,6 +9,19 @@ class Song extends Model
 {
     use HasFactory;
 
+    public const JIRIKI_RANKS = [
+        'S+',
+        'S',
+        'A+',
+        'A',
+        'B+',
+        'B',
+        'C',
+        'D',
+        'E',
+        'F',
+    ];
+
     protected $fillable = [
         'title',
         'jiriki_rank',

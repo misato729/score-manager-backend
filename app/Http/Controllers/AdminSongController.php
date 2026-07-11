@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Song;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminSongController extends Controller
 {
@@ -29,14 +30,17 @@ class AdminSongController extends Controller
 
     public function edit(Song $song)
     {
-        return view('songs.edit', compact('song'));
+        return view('songs.edit', [
+            'song' => $song,
+            'jirikiRanks' => Song::JIRIKI_RANKS,
+        ]);
     }
 
     public function update(Request $request, Song $song)
     {
         $data = $request->validate([
             'title' => 'required|string|max:255',
-            'jiriki_rank' => 'required|string|max:20',
+            'jiriki_rank' => ['required', 'string', Rule::in(Song::JIRIKI_RANKS)],
         ]);
 
         $song->update($data);

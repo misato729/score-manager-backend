@@ -13,7 +13,7 @@ class SongFactory extends Factory
     {
         return [
             'title'       => $this->faker->unique()->sentence(3),
-            'jiriki_rank' => $this->faker->randomElement(['S', 'AAA', 'AA', 'A', 'B']),
+            'jiriki_rank' => $this->faker->randomElement(Song::JIRIKI_RANKS),
         ];
     }
 }
