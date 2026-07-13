@@ -12,6 +12,21 @@ class AdminShopTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
+    public function index_page_shows_common_header_and_sidebar(): void
+    {
+        $admin = $this->allowedAdmin();
+
+        $this->actingAs($admin)
+            ->get('/admin/shops')
+            ->assertOk()
+            ->assertSee('リフプラ難易度表 管理システム')
+            ->assertSee('ログアウト')
+            ->assertSee('店舗一覧')
+            ->assertSee('楽曲一覧')
+            ->assertSee('設置店舗一覧');
+    }
+
+    #[Test]
     public function create_page_is_visible_to_allowed_admin(): void
     {
         $admin = $this->allowedAdmin();
