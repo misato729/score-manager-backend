@@ -24,6 +24,9 @@ class AdminSongTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/songs')
             ->assertOk()
+            ->assertSee('リフプラ難易度表 管理システム')
+            ->assertSee('ログアウト')
+            ->assertSee('店舗一覧')
             ->assertSee('楽曲一覧')
             ->assertSee('FLOWER')
             ->assertSee('S+');

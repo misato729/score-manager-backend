@@ -6,14 +6,9 @@ use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| 公開ページ
-|--------------------------------------------------------------------------
-*/
 Route::get('/', function () {
     return view('welcome');
-});
+})->middleware('auth');
 
 /*
 |--------------------------------------------------------------------------
