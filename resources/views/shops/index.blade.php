@@ -39,7 +39,6 @@
             <th style="width:80px">ID</th>
             <th>店舗名</th>
             <th>住所</th>
-            <th class="mono">都道府県</th>
             <th class="mono">緯度</th>
             <th class="mono">経度</th>
             <th class="mono">価格</th>
@@ -55,7 +54,6 @@
               <td class="mono">{{ $shop->id }}</td>
               <td><a href="{{ route('shops.edit', $shop->id) }}">{{ $shop->name }}</a></td>
               <td>{{ $shop->address }}</td>
-              <td class="mono">{{ $shop->prefecture_code ?? '-' }}</td>
               <td class="mono">{{ $shop->lat }}</td>
               <td class="mono">{{ $shop->lng }}</td>
               <td class="mono">{{ $shop->price ?? '-' }}</td>
@@ -72,7 +70,7 @@
             </tr>
           @empty
             <tr>
-              <td colspan="11" style="text-align:center; color:var(--muted); padding:24px;">データがありません</td>
+              <td colspan="10" style="text-align:center; color:var(--muted); padding:24px;">データがありません</td>
             </tr>
           @endforelse
         </tbody>

@@ -64,7 +64,7 @@
     .meta{padding:0 16px 12px; color:var(--muted); font-size:.95rem}
     .table-wrap{overflow:auto; border-top:1px solid var(--stroke)}
     table{width:100%; border-collapse:separate; border-spacing:0}
-    thead th{position:sticky; top:var(--header-height); z-index:2; background:#202633; text-align:left; font-weight:700; color:var(--muted); font-size:.9rem; padding:12px 14px; border-bottom:1px solid var(--stroke)}
+    thead th{background:#202633; text-align:left; font-weight:700; color:var(--muted); font-size:.9rem; padding:12px 14px; border-bottom:1px solid var(--stroke)}
     tbody td{padding:12px 14px; border-bottom:1px solid var(--stroke); vertical-align:top}
     tbody tr:hover{background:#1d2330}
     .mono{font-variant-numeric:tabular-nums}
