@@ -20,7 +20,9 @@ class ExampleTest extends TestCase
     {
         $this->actingAs(User::factory()->create(['id' => (int) env('ALLOWED_USER_ID', 10) + 1]))
             ->get('/')
-            ->assertForbidden();
+            ->assertForbidden()
+            ->assertDontSee('Homeへ戻る')
+            ->assertDontSee('>Home<', false);
     }
 
     /**
