@@ -16,6 +16,13 @@ class ExampleTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
+    public function test_home_forbids_authenticated_users_without_permission(): void
+    {
+        $this->actingAs(User::factory()->create(['id' => (int) env('ALLOWED_USER_ID', 10) + 1]))
+            ->get('/')
+            ->assertForbidden();
+    }
+
     /**
      * A basic test example.
      */
