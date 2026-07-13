@@ -98,12 +98,6 @@
         @endauth
 
         <div class="row">
-          <a class="btn" href="{{ url('/') }}">
-            <!-- home -->
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V8l7-5 7 5v13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Homeへ戻る
-          </a>
-
           @guest
             <a class="btn primary" href="{{ route('login') }}">
               <!-- login -->
@@ -130,7 +124,7 @@
       </div>
 
       <footer>
-        © {{ date('Y') }} RB+ Rank Manager · <a class="link" href="{{ url('/') }}">Home</a>
+        © {{ date('Y') }} RB+ Rank Manager
       </footer>
     </div>
   </div>
