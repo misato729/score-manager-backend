@@ -37,12 +37,12 @@
         <colgroup>
           <col style="width:80px">
           <col style="width:24%">
-          <col style="width:34%">
+          <col style="width:28%">
           <col style="width:90px">
           <col style="width:90px">
           <col>
-          <col style="width:120px">
-          <col style="width:120px">
+          <col style="width:132px">
+          <col style="width:132px">
         </colgroup>
         <thead>
           <tr>
@@ -52,8 +52,8 @@
             <th class="mono">価格</th>
             <th class="mono">台数</th>
             <th>説明</th>
-            <th>状態</th>
-            <th>操作</th>
+            <th style="white-space:nowrap">状態</th>
+            <th style="white-space:nowrap">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -65,14 +65,14 @@
               <td class="mono">{{ $shop->price ?? '-' }}</td>
               <td class="mono">{{ $shop->number_of_machine ?? '-' }}</td>
               <td>{{ $shop->description ?? '-' }}</td>
-              <td>
+              <td style="white-space:nowrap">
                 @if($shop->is_deleted)
                   <span class="badge ng">削除済み</span>
                 @else
                   <span class="badge ok">公開中</span>
                 @endif
               </td>
-              <td><a class="btn" href="{{ route('shops.edit', $shop->id) }}">編集</a></td>
+              <td style="white-space:nowrap"><a class="btn" href="{{ route('shops.edit', $shop->id) }}">編集</a></td>
             </tr>
           @empty
             <tr>
