@@ -41,15 +41,20 @@ class AdminSongTest extends TestCase
             'jiriki_rank' => 'A',
         ]);
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->get("/admin/songs/{$song->id}/edit")
             ->assertOk()
+            ->assertSee('リフプラ難易度表 管理システム')
+            ->assertSee('店舗一覧')
+            ->assertSee('楽曲一覧')
             ->assertSee('楽曲編集')
             ->assertSee('灼熱Beach Side Bunny')
             ->assertSee('<select id="jiriki_rank" name="jiriki_rank" required>', false)
             ->assertSee('value="S+"', false)
             ->assertSee('value="A" selected', false)
             ->assertSee('value="F"', false);
+
+        $this->assertSame(1, substr_count($response->getContent(), 'ログアウト'));
     }
 
     #[Test]
