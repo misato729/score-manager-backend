@@ -23,7 +23,9 @@ class AdminShopTest extends TestCase
             ->assertSee('ログアウト')
             ->assertSee('店舗一覧')
             ->assertSee('楽曲一覧')
-            ->assertSee('設置店舗一覧');
+            ->assertSee('設置店舗一覧')
+            ->assertDontSee('緯度')
+            ->assertDontSee('経度');
     }
 
     #[Test]

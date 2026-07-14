@@ -34,18 +34,26 @@
 
     <div class="table-wrap">
       <table aria-label="ショップ一覧">
+        <colgroup>
+          <col style="width:80px">
+          <col style="width:24%">
+          <col style="width:34%">
+          <col style="width:90px">
+          <col style="width:90px">
+          <col>
+          <col style="width:120px">
+          <col style="width:120px">
+        </colgroup>
         <thead>
           <tr>
-            <th style="width:80px">ID</th>
+            <th>ID</th>
             <th>店舗名</th>
             <th>住所</th>
-            <th class="mono">緯度</th>
-            <th class="mono">経度</th>
             <th class="mono">価格</th>
             <th class="mono">台数</th>
             <th>説明</th>
-            <th style="width:120px">状態</th>
-            <th style="width:120px">操作</th>
+            <th>状態</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -54,8 +62,6 @@
               <td class="mono">{{ $shop->id }}</td>
               <td><a href="{{ route('shops.edit', $shop->id) }}">{{ $shop->name }}</a></td>
               <td>{{ $shop->address }}</td>
-              <td class="mono">{{ $shop->lat }}</td>
-              <td class="mono">{{ $shop->lng }}</td>
               <td class="mono">{{ $shop->price ?? '-' }}</td>
               <td class="mono">{{ $shop->number_of_machine ?? '-' }}</td>
               <td>{{ $shop->description ?? '-' }}</td>
@@ -70,7 +76,7 @@
             </tr>
           @empty
             <tr>
-              <td colspan="10" style="text-align:center; color:var(--muted); padding:24px;">データがありません</td>
+              <td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">データがありません</td>
             </tr>
           @endforelse
         </tbody>
