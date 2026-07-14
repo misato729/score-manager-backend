@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -37,6 +38,27 @@ class AdminShopTest extends TestCase
             ->get('/admin/shops/create')
             ->assertOk()
             ->assertSee('設置店舗新規登録');
+    }
+
+    #[Test]
+    public function edit_page_shows_common_header_and_sidebar(): void
+    {
+        $admin = $this->allowedAdmin();
+        $shop = Shop::factory()->create([
+            'name' => 'タイトーステーション大宮店',
+            'address' => '埼玉県さいたま市大宮区大門町1-1',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get("/admin/shops/{$shop->id}/edit")
+            ->assertOk()
+            ->assertSee('リフプラ難易度表 管理システム')
+            ->assertSee('店舗一覧')
+            ->assertSee('楽曲一覧')
+            ->assertSee('設置店舗編集')
+            ->assertSee('タイトーステーション大宮店');
+
+        $this->assertSame(1, substr_count($response->getContent(), 'ログアウト'));
     }
 
     #[Test]
