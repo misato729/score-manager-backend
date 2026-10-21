@@ -95,6 +95,10 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'options' => extension_loaded('pdo_pgsql') ? [
+                // 値のバインドを維持し、PgBouncer非互換の名前付きprepareを避ける。
+                PDO::PGSQL_ATTR_DISABLE_PREPARES => true,
+            ] : [],
         ],
 
         'sqlsrv' => [
