@@ -56,3 +56,47 @@ jobs:
       - name: Run Tests
         run: php artisan test --stop-on-failure --testdox
 
+  postgres-shop-sync:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: score_manager_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: score_manager_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3.36'
+          extensions: mbstring, intl, pdo_pgsql
+          coverage: none
+
+      - name: Install Composer deps
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare test environment
+        run: cp .env.example .env
+
+      - name: Verify PostgreSQL shop sync and notifications
+        run: php artisan test --stop-on-failure --filter='ShopsApiTest|SyncKonamiShopsTest|ShopSyncNotificationsTest'
+
