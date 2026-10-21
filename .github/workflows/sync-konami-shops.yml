@@ -1,0 +1,65 @@
+name: Sync KONAMI shops
+
+on:
+  schedule:
+    # 毎日12:00 JST。
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '変更候補だけを表示し、データベースを更新しない'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-konami-shops
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # 手動実行時も、本番DBにはデフォルトブランチのコードだけを接続する。
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      DB_CONNECTION: pgsql
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      LOG_CHANNEL: stderr
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, mbstring, pdo_pgsql
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+
+      - name: Sync published shops
+        env:
+          DB_URL: ${{ secrets.SHOP_SYNC_DATABASE_URL }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+        shell: bash
+        run: |
+          if [[ -z "$DB_URL" ]]; then
+            echo '::error::Repository secret SHOP_SYNC_DATABASE_URL is required.'
+            exit 1
+          fi
+
+          if [[ "$DRY_RUN" == 'true' ]]; then
+            php artisan shops:sync-konami --dry-run
+          else
+            php artisan shops:sync-konami
+          fi

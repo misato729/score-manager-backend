@@ -80,6 +80,37 @@
 - [Laravel Bladeで管理画面を作ってみた【MVC】](https://qiita.com/misato729/items/138a89c3ad8b3e2f0716)  
   → 管理画面（店舗CRUD）を作る過程を整理した学習アウトプット記事です。
 
+## 設置店舗の自動非公開化
+
+[KONAMI公式の設置店舗検索](https://p.eagate.573.jp/game/facility/search/p/index.html?gkey=REFLECC)を取得し、公開中の店舗が検索結果から消えていた場合に `is_deleted` を `true` にする。
+都道府県と店舗名で照合し、店舗名の全角英数字・空白の表記差を吸収する。
+
+- 全47都道府県の検索結果を正常に取得できてから更新する。設置店舗が0件の県も正常な結果として扱う。
+- 通信失敗や取得形式の変化を検出した場合は更新せず、エラー終了する。
+- 既に非公開の店舗を再公開せず、新規登録や住所・価格・台数の更新も行わない。
+- 店舗データや行脚履歴は削除しない。
+
+実行環境のデータベース設定を使い、次のコマンドで確認・更新できる。
+
+```bash
+# 変更候補の確認のみ（DB更新なし）
+php artisan shops:sync-konami --dry-run
+
+# 非公開化を実行
+php artisan shops:sync-konami
+```
+
+### 毎日の自動実行
+
+GitHub Actionsの `Sync KONAMI shops` が毎日12:00（日本時間、実行開始が遅れる場合あり）に非公開化を実行する。
+RenderのWebサービスの起動状態に依存せず、GitHub Actionsから直接DBへ接続する。
+
+1. リポジトリの **Settings → Secrets and variables → Actions** に `SHOP_SYNC_DATABASE_URL` を登録する。値にはGitHub Actionsから接続可能なPostgreSQLの外部接続URLを使用する。Render内部向けURLは使用できない。店舗情報の読み取りと更新に必要な権限を持つDBアカウントを使用する。
+2. ワークフローをデフォルトブランチ（`main`）へ反映する。定期実行はデフォルトブランチでのみ有効となる。
+3. **Actions → Sync KONAMI shops → Run workflow** で `main` を選び、まず `dry_run` をオンにして変更候補を確認する。オフにすると更新する。定期実行時は更新する。
+
+接続URLはGitHub Secretsで管理し、ログに出力しない。このワークフローはマイグレーションやシードを実行しない。
+
 # CI/CD
 本プロジェクトでは **GitHub Actions + Render** を用いた CI/CD を構築している。  
 プルリクエストから本番デプロイまで自動化されており、安全かつ効率的な開発フローを実現している。
