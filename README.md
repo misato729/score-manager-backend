@@ -102,7 +102,7 @@ php artisan shops:sync-konami
 
 ### 毎日の自動実行
 
-GitHub Actionsの `Sync KONAMI shops` が毎日12:00（日本時間、実行開始が遅れる場合あり）に非公開化を実行する。
+GitHub Actionsの `Sync KONAMI shops` が毎日07:30（日本時間、実行開始が遅れる場合あり）に非公開化を実行する。
 RenderのWebサービスの起動状態に依存せず、GitHub Actionsから直接DBへ接続する。
 
 1. コードとワークフローをデフォルトブランチ（`main`）へ反映する。定期実行はデフォルトブランチでのみ有効となる。
