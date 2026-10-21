@@ -1,5 +1,5 @@
 # PHPとComposerが使えるベースのイメージ
-FROM php:8.3-fpm
+FROM php:8.3.36-fpm
 
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \
@@ -34,5 +34,5 @@ EXPOSE 10000
 # 設定キャッシュクリア
 RUN php artisan config:clear && php artisan route:clear && php artisan view:clear
 
-# マイグレーションしてからサーバー起動
-CMD sh -c "php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=10000"
+# 稼働するPHPのバージョンを記録し、マイグレーションしてからサーバー起動
+CMD sh -c "php -v && php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=10000"
