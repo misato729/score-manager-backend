@@ -33,8 +33,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // --- 以下、既存のAPIルートはそのままでOK ---
 Route::post('/register-user', [UserController::class, 'store']);
 
-Route::get('/scores', [ScoreController::class, 'index']);
-Route::get('/user-scores', [ScoreController::class, 'userScores']);
+Route::get('/users/{userId}/scores', [ScoreController::class, 'index'])
+    ->whereNumber('userId');
+Route::get('/users/{userId}/song-scores', [ScoreController::class, 'userScores'])
+    ->whereNumber('userId');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/scores/{score}', [ScoreController::class, 'update']);
@@ -46,4 +48,5 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/shops', [ShopController::class, 'index']);
-Route::get('/visited-shops', [VisitController::class, 'publicIndex']);
+Route::get('/users/{userId}/visited-shops', [VisitController::class, 'publicIndex'])
+    ->whereNumber('userId');

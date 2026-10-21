@@ -10,14 +10,8 @@ use Illuminate\Support\Facades\DB;
 class ScoreController extends Controller
 {
     // ✅ ゲストでも閲覧可能なスコア取得API
-    public function index(Request $request)
+    public function index(int $userId)
     {
-        $userId = $request->query('user');
-
-        if (!$userId) {
-            return response()->json(['error' => 'User ID is required'], 400);
-        }
-
         return Score::with('song')
             ->where('user_id', $userId)
             ->get();
@@ -41,14 +35,8 @@ class ScoreController extends Controller
         return response()->json(['message' => 'Score updated']);
     }
 
-    public function userScores(Request $request)
+    public function userScores(int $userId)
     {
-        $userId = $request->query('user');
-
-        if (!$userId) {
-            return response()->json(['error' => 'User ID is required'], 400);
-        }
-
         $user = User::find($userId);
 
         if (!$user) {
