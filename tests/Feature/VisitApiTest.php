@@ -70,23 +70,26 @@ class VisitApiTest extends TestCase
     }
 
     #[Test]
-    public function public_index_requires_user_query(): void
+    public function public_index_requires_numeric_user_path(): void
     {
-        $this->getJson('/api/visited-shops')
-            ->assertStatus(400)
-            ->assertJson(['message' => 'userパラメータが必要です']);
+        $this->getJson('/api/users/visited-shops')->assertMethodNotAllowed();
+        $this->getJson('/api/users/not-a-user/visited-shops')->assertNotFound();
     }
 
     #[Test]
     public function public_index_returns_visits_for_specified_user(): void
     {
         $user = User::factory()->create();
+        $otherUser = User::factory()->create();
         $shop = Shop::factory()->create();
+        $otherShop = Shop::factory()->create();
         UserVisit::factory()->create(['user_id' => $user->id, 'shop_id' => $shop->id]);
+        UserVisit::factory()->create(['user_id' => $otherUser->id, 'shop_id' => $otherShop->id]);
 
-        $this->getJson("/api/visited-shops?user={$user->id}")
+        $this->getJson("/api/users/{$user->id}/visited-shops?user={$otherUser->id}")
             ->assertOk()
             ->assertJsonPath('user_name', $user->name)
+            ->assertJsonCount(1, 'visited_shops')
             ->assertJsonFragment([
                 'id' => $shop->id,
                 'name' => $shop->name,
@@ -99,10 +102,18 @@ class VisitApiTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->getJson("/api/visited-shops?user={$user->id}")
+        $this->getJson("/api/users/{$user->id}/visited-shops")
             ->assertOk()
             ->assertJsonPath('user_name', $user->name)
             ->assertJsonPath('visited_shops', []);
+    }
+
+    #[Test]
+    public function public_index_returns_not_found_for_unknown_user(): void
+    {
+        $this->getJson('/api/users/999999/visited-shops')
+            ->assertNotFound()
+            ->assertJson(['message' => 'ユーザーが見つかりません']);
     }
 
     // 任意：バリデーション422を抑えておくとより実務的

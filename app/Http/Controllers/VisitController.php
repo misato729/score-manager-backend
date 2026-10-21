@@ -50,14 +50,8 @@ class VisitController extends Controller
     }
 
     // 任意ユーザーの行脚店舗一覧（非ログインでも取得可能）
-    public function publicIndex(Request $request)
+    public function publicIndex(int $userId)
     {
-        $userId = $request->query('user');
-
-        if (! $userId || ! is_numeric($userId)) {
-            return response()->json(['message' => 'userパラメータが必要です'], 400);
-        }
-
         $user = User::find($userId);
 
         if (! $user) {
