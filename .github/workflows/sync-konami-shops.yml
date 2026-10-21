@@ -11,6 +11,11 @@ on:
         required: true
         type: boolean
         default: true
+      test_notification:
+        description: '店舗の状態を変更せず、Sentryのテスト通知だけを送る'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -50,16 +55,24 @@ jobs:
       - name: Sync published shops
         env:
           DB_URL: ${{ secrets.SHOP_SYNC_DATABASE_URL }}
+          SHOP_SYNC_SENTRY_DSN: ${{ secrets.SHOP_SYNC_SENTRY_DSN }}
+          SHOP_SYNC_ADMIN_URL: ${{ vars.SHOP_SYNC_ADMIN_URL || 'https://score-manager-backend.onrender.com' }}
+          SHOP_SYNC_GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+          TEST_NOTIFICATION: ${{ github.event_name == 'workflow_dispatch' && inputs.test_notification && 'true' || 'false' }}
         shell: bash
         run: |
-          if [[ -z "$DB_URL" ]]; then
-            echo '::error::Repository secret SHOP_SYNC_DATABASE_URL is required.'
-            exit 1
-          fi
-
-          if [[ "$DRY_RUN" == 'true' ]]; then
-            php artisan shops:sync-konami --dry-run
+          if [[ "$TEST_NOTIFICATION" == 'true' ]]; then
+            php artisan shops:test-sync-notification
           else
-            php artisan shops:sync-konami
+            if [[ -z "$DB_URL" ]]; then
+              echo '::error::Repository secret SHOP_SYNC_DATABASE_URL is required.'
+              exit 1
+            fi
+
+            if [[ "$DRY_RUN" == 'true' ]]; then
+              php artisan shops:sync-konami --dry-run
+            else
+              php artisan shops:sync-konami
+            fi
           fi

@@ -105,11 +105,27 @@ php artisan shops:sync-konami
 GitHub Actionsの `Sync KONAMI shops` が毎日12:00（日本時間、実行開始が遅れる場合あり）に非公開化を実行する。
 RenderのWebサービスの起動状態に依存せず、GitHub Actionsから直接DBへ接続する。
 
-1. リポジトリの **Settings → Secrets and variables → Actions** に `SHOP_SYNC_DATABASE_URL` を登録する。値にはGitHub Actionsから接続可能なPostgreSQLの外部接続URLを使用する。Render内部向けURLは使用できない。店舗情報の読み取りと更新に必要な権限を持つDBアカウントを使用する。
-2. ワークフローをデフォルトブランチ（`main`）へ反映する。定期実行はデフォルトブランチでのみ有効となる。
-3. **Actions → Sync KONAMI shops → Run workflow** で `main` を選び、まず `dry_run` をオンにして変更候補を確認する。オフにすると更新する。定期実行時は更新する。
+1. コードとワークフローをデフォルトブランチ（`main`）へ反映する。定期実行はデフォルトブランチでのみ有効となる。
+2. Renderのデプロイ完了とマイグレーション適用を確認し、通知保存用の `shop_sync_notifications` テーブルを作成する。別の方法で配置する場合は、対象環境で `php artisan migrate --force` を実行する。通常の同期を実行する前にテーブルの存在を確認する。
+3. リポジトリの **Settings → Secrets and variables → Actions** に `SHOP_SYNC_DATABASE_URL` を登録する。値にはGitHub Actionsから接続可能なPostgreSQLの外部接続URLを使用する。Render内部向けURLは使用できない。店舗情報と通知記録の読み取り・更新に必要な権限を持つDBアカウントを使用する。
+4. **Actions → Sync KONAMI shops → Run workflow** で `main` を選び、まず `dry_run` をオンにして変更候補を確認する。オフにすると更新する。定期実行時は更新する。
 
 接続URLはGitHub Secretsで管理し、ログに出力しない。このワークフローはマイグレーションやシードを実行しない。
+
+### 非公開化時のメール通知（Sentry）
+
+新たに非公開化した店舗がある場合、店舗名・都道府県・住所・管理画面の編集リンクと実行元をSentryへ通知し、SentryのIssue Alertからメールを送る。
+公式検索から消えた理由は撤去だけでなく店舗名の変更の場合もあるため、通知内容を確認する。店名変更なら管理画面で公式検索と一致する店舗名へ修正し、非公開チェックを外して再公開する。
+
+1. Sentryの対象プロジェクトのDSNを、GitHub ActionsのSecret `SHOP_SYNC_SENTRY_DSN` に登録する。ローカルなどから実行する場合は同名の環境変数に設定する。
+2. Sentryで[Issue Alert](https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/)を作成する。環境を `production`、イベントのタグ条件を `event_type` が `shops_hidden`、発火条件を新規Issueの発生に設定する。非公開化の通知単位ごとにUUIDを含む[fingerprint](https://docs.sentry.io/platforms/php/usage/sdk-fingerprinting/)を使い、別の通知を新規Issueとして扱う。
+3. 通知先には希望するメールアドレスを認証済みのプライマリメールにしているSentryメンバーを選ぶ。対象プロジェクト・チームへの参加と、本人のメール通知設定を確認する。アプリ側のSMTP設定や送信元メールアドレスの設定は不要。
+4. 管理画面のURLを変更する場合は、GitHub ActionsのVariable `SHOP_SYNC_ADMIN_URL` を設定する。未設定時は `https://score-manager-backend.onrender.com` を使う。GitHub Actions外では同名環境変数を使い、省略時は `APP_URL` を使う。
+5. **Actions → Sync KONAMI shops → Run workflow** で `test_notification` をオンにして実行する。明確なテスト表示のイベントだけを送信し、店舗の状態や通知履歴は変更しない。Sentryのイベントと受信メールを確認する。通常実行時はオフに戻す。環境変数を設定した環境では `php artisan shops:test-sync-notification` でも確認できる。
+
+`--dry-run` では通知しない。新たな非公開化がなければ新しい通知は作成しないが、未送信の通知が残っていれば再送を試みる。
+DSN未設定や送信失敗の場合も店舗の非公開化は継続し、通知内容をDBに保存する。設定・通信が回復した後の通常実行で未送信分を再送する。
+Sentryへの送信成功とメールの到着は別の確認となるため、運用開始時にはSentry上のイベント、Alert設定、受信メールまで確認する。
 
 # CI/CD
 本プロジェクトでは **GitHub Actions + Render** を用いた CI/CD を構築している。  

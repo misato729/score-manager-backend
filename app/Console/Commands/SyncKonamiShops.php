@@ -4,8 +4,10 @@ namespace App\Console\Commands;
 
 use App\Models\Shop;
 use App\Services\KonamiFacilityScraper;
+use App\Services\ShopSyncNotifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class SyncKonamiShops extends Command
@@ -14,14 +16,28 @@ class SyncKonamiShops extends Command
 
     protected $description = 'KONAMI公式検索から消えた公開店舗を非公開にする';
 
-    public function handle(KonamiFacilityScraper $scraper): int
+    public function handle(KonamiFacilityScraper $scraper, ShopSyncNotifier $notifier): int
     {
+        if (Schema::hasTable('shop_sync_notifications')) {
+            $this->info('通知テーブル: 準備済み。');
+        } elseif ($this->option('dry-run')) {
+            $this->warn('通知テーブルが未作成です。通常の同期前にマイグレーションを実行してください。今回は変更候補のみ確認します。');
+        } else {
+            $this->error('通知テーブルが未作成です。マイグレーションを実行してください。店舗情報は変更していません。');
+
+            return self::FAILURE;
+        }
+
         try {
             // 取得途中の失敗を0件と誤認しないよう、全県の取得後にDBに触れる。
             $snapshot = $scraper->fetch();
         } catch (Throwable $exception) {
             $this->error('公式検索の取得に失敗しました。店舗情報は変更していません。');
             $this->error($exception->getMessage());
+
+            if (! $this->option('dry-run')) {
+                $this->sendNotifications($notifier);
+            }
 
             return self::FAILURE;
         }
@@ -33,8 +49,9 @@ class SyncKonamiShops extends Command
             ), true);
         }
 
-        [$candidates, $skipped, $updated] = DB::transaction(function () use ($officialNames) {
+        [$candidates, $skipped, $updated] = DB::transaction(function () use ($officialNames, $notifier) {
             $candidates = [];
+            $notificationShops = [];
             $skipped = [];
             $ids = [];
 
@@ -54,12 +71,23 @@ class SyncKonamiShops extends Command
                 if (! isset($officialNames[$code][$name])) {
                     $ids[] = $shop->id;
                     $candidates[] = [$shop->id, config("prefectures.{$code}"), $shop->name];
+                    $notificationShops[] = [
+                        'id' => $shop->id,
+                        'name' => $shop->name,
+                        'prefecture' => config("prefectures.{$code}"),
+                        'address' => $shop->address,
+                        'edit_url' => rtrim(config('shop-sync.admin_url'), '/')."/admin/shops/{$shop->id}/edit",
+                    ];
                 }
             }
 
             $updated = $this->option('dry-run') || $ids === []
                 ? 0
                 : Shop::whereKey($ids)->where('is_deleted', false)->update(['is_deleted' => true]);
+
+            if ($updated > 0) {
+                $notifier->record($notificationShops);
+            }
 
             return [$candidates, $skipped, $updated];
         });
@@ -79,9 +107,34 @@ class SyncKonamiShops extends Command
             $this->info('確認のみ: 非公開化候補 '.count($candidates).'件。店舗情報は変更していません。');
         } else {
             $this->info($updated.'件を非公開にしました。');
+
+            if (! $this->sendNotifications($notifier)) {
+                return self::FAILURE;
+            }
         }
 
         return self::SUCCESS;
+    }
+
+    private function sendNotifications(ShopSyncNotifier $notifier): bool
+    {
+        try {
+            $sent = $notifier->sendPending();
+
+            if ($sent > 0) {
+                $this->info($sent.'件の通知をSentryへ送信しました。');
+            }
+
+            if (! $notifier->isConfigured() && $notifier->pendingCount() > 0) {
+                $this->warn('SentryのDSNが未設定のため、通知を保存しました。設定後の実行時に送信します。');
+            }
+
+            return true;
+        } catch (Throwable) {
+            $this->error('非公開化の通知をSentryへ送信できませんでした。通知は保存されているため、次回再送します。');
+
+            return false;
+        }
     }
 
     private function prefectureCodeFor(Shop $shop): ?int
