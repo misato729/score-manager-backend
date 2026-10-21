@@ -112,6 +112,8 @@ RenderのWebサービスの起動状態に依存せず、GitHub Actionsから直
 
 接続URLはGitHub Secretsで管理し、ログに出力しない。このワークフローはマイグレーションやシードを実行しない。
 
+Neonのpooler接続をPHP 8.3で使用するため、PostgreSQL接続には[PgBouncer公式FAQ](https://www.pgbouncer.org/faq.html#how-to-use-prepared-statements-with-transaction-pooling)が推奨する `PDO::ATTR_EMULATE_PREPARES => true` を設定している。RenderとGitHub Actionsの両方に適用し、クエリの値は引き続きパラメータとして渡す。
+
 ### 非公開化時のメール通知（Sentry）
 
 新たに非公開化した店舗がある場合、店舗名・都道府県・住所・管理画面の編集リンクと実行元をSentryへ通知し、SentryのIssue Alertからメールを送る。
