@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AdminShopController;
 use App\Http\Controllers\AdminSongController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\LoginController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +25,19 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+// APIのセッション認証もwebで処理し、Sanctumとのセッション処理の重複を避ける。
+Route::prefix('api')->group(function () {
+    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+    Route::post('/logout', function (Request $request) {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json(['message' => 'Logged out']);
+    });
+});
 
 /*
 |--------------------------------------------------------------------------
