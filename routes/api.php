@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
 // 既存
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ScoreController;
 use App\Http\Controllers\ShopController;
@@ -12,18 +11,6 @@ use App\Http\Controllers\VisitController;
 
 Route::get('/health', fn () => response()->json(['ok' => true], 200));
 
-
-// ✅ ログイン（セッションCookieを使うので web ミドルウェアを追加）
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('web'); // ← 重要
-
-// ✅ ログアウト（同上）
-Route::post('/logout', function (Request $request) {
-    \Illuminate\Support\Facades\Auth::guard('web')->logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    return response()->json(['message' => 'Logged out']);
-})->middleware('web');
 
 // ✅ ユーザー情報（Sanctumで保護）
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

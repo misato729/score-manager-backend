@@ -126,3 +126,51 @@ php vendor/bin/phpunit --no-progress
 
 デプロイ失敗時は、脆弱な旧イメージへ戻して対応完了としない。公開済みの公式回避策やアクセス制限・一時停止の必要性を確認し、修正版での復旧を進める。
 
+## 6. Laravel・Composer依存のセキュリティ更新（2026年10月22日）
+
+### 更新対象
+
+PHP本体の更新とは別に、Laravelと関連パッケージの脆弱性を確認した。Laravel 12系と既存のPHP互換条件を維持し、`composer.lock` の対象パッケージと更新に必要な依存を更新した。`composer.json` とマイグレーションには変更を加えていない。
+
+| パッケージ | 更新前 | 更新後 |
+| --- | --- | --- |
+| laravel/framework | 12.15.0 | 12.70.1 |
+| laravel/sanctum | 4.1.1 | 4.3.3 |
+| symfony/http-foundation | 7.2.6 | 7.4.21 |
+| symfony/mailer / symfony/mime | 7.2.6 | 7.4.19 |
+| symfony/routing | 7.2.3 | 7.4.21 |
+| guzzlehttp/guzzle / guzzlehttp/psr7 | 7.9.3 / 2.7.1 | 7.16.0 / 2.13.2 |
+| league/commonmark / league/flysystem | 2.7.0 / 3.29.1 | 2.10.4 / 3.36.0 |
+| psy/psysh | 0.12.8 | 0.12.24 |
+| phpunit/phpunit（開発用） | 11.5.23 | 11.5.57 |
+| symfony/yaml（開発用） | 7.2.6 | 7.4.21 |
+
+- [Laravel TokenGuardの認証回避（CVE-2026-114509）](https://github.com/laravel/framework/security/advisories/GHSA-f9x3-7vq9-cph6)は12.68.0で修正されている。このアプリの認証はsessionとSanctumで、該当するTokenGuard設定は見つからなかった。バージョンの更新にはこの修正も含まれる。
+- [Laravel 12.70.1](https://github.com/laravel/framework/releases/tag/v12.70.1)は、メール・署名付きURL・デバッグ表示などの既知の修正と、Markdownメールの追加修正を含む。
+- [SymfonyのCache-Controlヘッダー処理によるReDoS（CVE-2026-108082）](https://github.com/symfony/symfony/security/advisories/GHSA-r925-mgvr-h9cc)はリクエスト生成時に認証なしで到達する。初回修正版7.4.19だけでなく、その後の空白区切り処理の不具合も修正された7.4.21を選んだ。
+- 依存解決には対象パッケージを明示した `composer update --with-all-dependencies --minimal-changes --no-install --no-scripts --no-plugins` を使用した。既存vendor・設定・公開ファイルを更新フックで変更しないよう、一時ディレクトリで解決してからlockを反映した。
+
+### セッション認証の互換対応
+
+Laravelの新しいセッション保護形式に古いSanctumが対応せず、APIログインが成功しても次の `/api/user` が401になることを実HTTPで確認した。[Sanctum 4.3.3の実装](https://github.com/laravel/sanctum/blob/v4.3.3/src/Http/Middleware/AuthenticateSession.php)に合わせ、同じ4系内で更新した。
+
+加えて、APIのログイン・ログアウトにwebとSanctumのセッション処理が重複すると、ログアウト後も古いCookieで認証できることを更新前後の両方で確認した。`/api/login` と `/api/logout` を `routes/web.php` の `/api` グループに移し、webミドルウェアで一度だけ処理するようにした。URL、POSTメソッド、JSON応答、CSRF保護を維持している。他のAPIの `auth:sanctum` は変更していない。
+
+`SessionAuthenticationTest` で実資格情報の検証とCookie再送を行い、Originの有無、セッション継続、ログアウト後の新旧Cookie失効、管理者許可・拒否を確認する。リクエストごとに認証状態をリセットし、`actingAs` による代替は行わない。
+
+### 隔離環境での検証
+
+- `composer validate --strict` が成功し、`composer audit --locked` と `composer audit --locked --no-dev` はいずれも指摘0件。監査データベースへの反映が遅れる場合もあるため、LaravelとSymfonyの上記公式告知も別途確認した。監査除外や依存要件の無視は追加していない。
+- PHP **8.3.36** のDockerイメージで、本番用の `composer install --no-dev --optimize-autoloader`、package discovery、設定・ルート・ビューのキャッシュクリアが成功した。開発依存の有無それぞれで `composer check-platform-reqs` が成功した。
+- 開発依存ありの同じPHPで、SQLiteメモリDBの追加分を含む全テスト **112件・461アサーション** が成功した。既存のdoc-comment形式によるPHPUnit非推奨警告3件は残っている。
+- CIと同じPostgreSQL 17の一時DBで `ShopsApiTest|SyncKonamiShopsTest|ShopSyncNotificationsTest` を実行し、**23件・139アサーション** が成功した。Neon向けのprepare設定は維持している。
+- PHPUnitではCSRF検証が免除されるため、通信を遮断したコンテナ内のHTTPサーバーと使い捨てSQLiteファイルでも確認した。CSRF Cookie取得、正しいトークン付きのAPIログイン・セッション継続・ログアウトが成功し、トークンなしPOSTは419、ログアウト後の新旧Cookieは401になった。Originなしのログイン・ログアウトと、管理者の許可・一般ユーザーの403も確認した。本番や実ブラウザーでの動作確認とは区別する。
+- 一時ビルドコンテキストから `.env`・Git情報・既存vendor・実DB・キャッシュ・ログを除外した。SQLiteテストは `--network none`、PostgreSQLテストは外部接続のない内部ネットワークを使用した。通常の本番用CMDを上書きし、`DB_URL` とSentry DSNを空に、メールをarrayへ固定した。
+- ローカルvendorも、アプリを起動しない `composer install --no-scripts --no-plugins` で更新後のlockに揃えた。
+
+### 本番への反映
+
+この記録はコードの更新と隔離環境での検証結果であり、本番への適用完了を示すものではない。反映するコミットのCI成功を確認してから、Renderで新しいlockを含むイメージを再ビルド・デプロイする。ビルドログで `laravel/framework v12.70.1` のインストール成功、起動ログでPHP 8.3.36、新しいデプロイのLive状態を確認する。
+
+その後、`/api/health`、公開の店舗一覧、ログイン画面と認証後の操作を確認する。PHPのHTTPヘッダーや更新前のHTTP 200だけでは、Laravelの修正適用済みとは判断しない。
+
