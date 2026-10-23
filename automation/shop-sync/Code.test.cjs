@@ -27,10 +27,14 @@ function harness(options = {}) {
   const deletedTriggers = [];
   let releases = 0;
   let lockAttempts = 0;
+  let tokenReads = 0;
   let creationAttempts = 0;
   let maxTriggerCount = triggers.length;
   const scriptProperties = {
-    getProperty: (key) => properties.get(key) ?? null,
+    getProperty(key) {
+      if (key === 'GITHUB_TOKEN') now += options.tokenReadAdvanceMs?.[tokenReads++] ?? 0;
+      return properties.get(key) ?? null;
+    },
     getProperties: () => Object.fromEntries(properties),
     setProperty(key, value) {
       properties.set(key, String(value));
@@ -102,6 +106,7 @@ function harness(options = {}) {
           everyMinutes() { assert.fail('All-day minute triggers must not be installed'); },
           create() {
             creationAttempts += 1;
+            now += options.triggerCreateAdvanceMs ?? 0;
             if (options.failCreationNumbers?.includes(creationAttempts)) throw new Error('Trigger creation failed');
             if (triggers.length >= 20) throw new Error('Trigger quota exceeded');
             const trigger = makeTrigger(handler, this.schedule);
@@ -145,6 +150,28 @@ test('normal handlers never call GitHub before 07:00 or from 08:00 JST onward', 
     assert.equal(app.properties.has(lastDayKey), false, time);
     assert.equal(app.forHandler('retryShopSync').length, 0, time);
   }
+});
+
+test('crossing 08:00 while reserving the next trigger skips dispatch without recording the day', () => {
+  const app = harness({ now: '2026-10-23T07:59:59+09:00', triggerCreateAdvanceMs: 2000 });
+
+  assert.equal(app.context.tickShopSync().status, 'outside_window');
+  assert.equal(app.requests.length, 0);
+  assert.equal(app.properties.has(lastDayKey), false);
+  assert.equal(app.forHandler('retryShopSync').length, 0);
+  assertNextMorning(app);
+  assert.equal(app.releases, 1);
+});
+
+test('crossing 08:00 during the final token read skips the POST without recording the day', () => {
+  const app = harness({ now: '2026-10-23T07:59:59+09:00', tokenReadAdvanceMs: [0, 2000] });
+
+  assert.equal(app.context.tickShopSync().status, 'outside_window');
+  assert.equal(app.requests.length, 0);
+  assert.equal(app.properties.has(lastDayKey), false);
+  assert.equal(app.forHandler('retryShopSync').length, 0);
+  assertNextMorning(app);
+  assert.equal(app.releases, 1);
 });
 
 for (const code of [200, 204]) {
@@ -299,6 +326,15 @@ test('manual dry-runs also avoid GitHub during the 05:00–06:59 maintenance win
     assert.equal(app.requests.length, 0);
     assert.equal(app.properties.has(lastDayKey), false);
   }
+});
+
+test('a dry-run crossing 05:00 during the token read stops before the maintenance-window request', () => {
+  const app = harness({ now: '2026-10-23T04:59:59+09:00', tokenReadAdvanceMs: [2000] });
+
+  assert.throws(() => app.context.dispatchShopSyncDryRun(), /メンテナンス/);
+  assert.equal(app.requests.length, 0);
+  assert.equal(app.properties.has(lastDayKey), false);
+  assert.equal(app.createdTriggers.length, 0);
 });
 
 test('reinstallation leaves one next-morning trigger plus a daily fallback and preserves other handlers', () => {

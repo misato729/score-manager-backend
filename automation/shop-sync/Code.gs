@@ -21,14 +21,15 @@ function runShopSync_() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) return {status: 'locked'};
   try {
-    const now = new Date();
-    const day = Utilities.formatDate(now, SHOP_SYNC_TIME_ZONE, 'yyyy-MM-dd');
     try {
-      replaceShopSyncOneShot_('tickShopSync', nextShopSyncTime_(now));
+      replaceShopSyncOneShot_('tickShopSync', nextShopSyncTime_(new Date()));
     } catch (_) {
       // 日次fallbackを残し、本日分の起動は続行します。
       console.log('次回の単発予約に失敗しました。日次トリガーで再確認します。');
     }
+    // 予約操作中に08:00をまたぐ可能性があるため、判定用の時刻は取り直します。
+    const now = new Date();
+    const day = Utilities.formatDate(now, SHOP_SYNC_TIME_ZONE, 'yyyy-MM-dd');
     const time = Utilities.formatDate(now, SHOP_SYNC_TIME_ZONE, 'HH:mm');
     if (time < '07:00' || time >= '08:00') {
       deleteShopSyncTriggers_(['retryShopSync']);
@@ -49,6 +50,10 @@ function runShopSync_() {
     } catch (error) {
       scheduleShopSyncRetry_(new Date());
       throw error;
+    }
+    if (!response) {
+      deleteShopSyncTriggers_(['retryShopSync']);
+      return {status: 'outside_window'};
     }
     // 受付成功を先に保存し、レスポンスの解析失敗で二重起動しないようにします。
     properties.setProperty('SHOP_SYNC_LAST_DISPATCH_DAY', day);
@@ -183,6 +188,14 @@ function githubShopSyncRequest_(method, payload) {
   if (payload) {
     options.contentType = 'application/json';
     options.payload = JSON.stringify(payload);
+  }
+  // 認証情報の読み出し等でも時刻が進むため、POSTは送信直前にも確認します。
+  if (method === 'post' && payload && payload.inputs) {
+    const time = Utilities.formatDate(new Date(), SHOP_SYNC_TIME_ZONE, 'HH:mm');
+    if (payload.inputs.dry_run === 'false' && (time < '07:00' || time >= '08:00')) return null;
+    if (payload.inputs.dry_run === 'true' && time >= '05:00' && time < '07:00') {
+      throw new Error('日本時間05:00〜07:00は公式検索のメンテナンス時間のため実行しません。');
+    }
   }
   let response;
   try {
