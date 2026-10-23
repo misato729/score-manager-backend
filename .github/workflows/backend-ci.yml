@@ -97,6 +97,6 @@ jobs:
       - name: Prepare test environment
         run: cp .env.example .env
 
-      - name: Verify PostgreSQL shop sync, notifications and manual overrides
-        run: php artisan test --stop-on-failure --filter='ShopsApiTest|SyncKonamiShopsTest|ShopSyncNotificationsTest|AdminShopTest'
+      - name: Verify PostgreSQL shop sync, notifications and admin screens
+        run: php artisan test --stop-on-failure --filter='ShopsApiTest|SyncKonamiShopsTest|ShopSyncNotificationsTest|AdminShopTest|AdminUserTest'
 
