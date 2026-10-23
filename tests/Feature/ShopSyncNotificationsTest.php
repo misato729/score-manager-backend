@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Shop;
 use App\Models\ShopSyncNotification;
+use App\Models\ShopSyncState;
 use App\Services\KonamiFacilityScraper;
 use App\Services\ShopSyncSentryReporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
@@ -19,6 +21,7 @@ class ShopSyncNotificationsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->travelTo(Carbon::parse('2026-10-23 07:30:00', 'Asia/Tokyo'));
         config([
             'shop-sync.sentry_dsn' => 'https://public@example.sentry.io/1',
             'shop-sync.admin_url' => 'https://admin.example.test/',
@@ -30,6 +33,8 @@ class ShopSyncNotificationsTest extends TestCase
     {
         $first = $this->shop('店名変更の可能性がある店舗');
         $second = $this->shop('もう一つの店舗');
+        $this->missingForFourDays($first);
+        $this->missingForFourDays($second);
         $this->shop('既に非公開の店舗', ['is_deleted' => true]);
         $this->fakeSnapshot();
         $this->mock(ShopSyncSentryReporter::class)->shouldReceive('send')->once()
@@ -37,6 +42,9 @@ class ShopSyncNotificationsTest extends TestCase
                 $this->assertTrue((bool) $first->fresh()->is_deleted);
                 $this->assertTrue((bool) $second->fresh()->is_deleted);
                 $this->assertSame([$first->id, $second->id], array_column($notification->shops, 'id'));
+                $this->assertSame(5, $notification->shops[0]['consecutive_missing_days']);
+                $this->assertSame('2026-10-23', $notification->shops[0]['last_checked_on']);
+                $this->assertNotNull($first->syncState()->first()->hidden_at);
                 $this->assertSame('東京都', $notification->shops[0]['prefecture']);
                 $this->assertSame('東京都豊島区', $notification->shops[0]['address']);
                 $this->assertSame("https://admin.example.test/admin/shops/{$first->id}/edit", $notification->shops[0]['edit_url']);
@@ -51,6 +59,26 @@ class ShopSyncNotificationsTest extends TestCase
 
         $this->assertDatabaseCount('shop_sync_notifications', 1);
         $this->assertNotNull(ShopSyncNotification::first()->sent_at);
+    }
+
+    #[Test]
+    public function absence_before_the_fifth_day_creates_no_notification(): void
+    {
+        $shop = $this->shop('まだ非公開にしない店舗');
+        ShopSyncState::create([
+            'shop_id' => $shop->id,
+            'last_checked_on' => '2026-10-22',
+            'consecutive_missing_days' => 3,
+        ]);
+        $this->fakeSnapshot([], 2);
+        $this->mock(ShopSyncSentryReporter::class)->shouldNotReceive('send');
+
+        $this->artisan('shops:sync-konami')->assertSuccessful();
+        $this->artisan('shops:sync-konami')->assertSuccessful();
+
+        $this->assertFalse((bool) $shop->fresh()->is_deleted);
+        $this->assertSame(4, $shop->syncState()->first()->consecutive_missing_days);
+        $this->assertDatabaseCount('shop_sync_notifications', 0);
     }
 
     #[Test]
@@ -69,6 +97,7 @@ class ShopSyncNotificationsTest extends TestCase
     public function dry_run_does_not_create_notifications_or_send_existing_pending_notifications(): void
     {
         $shop = $this->shop('確認対象店舗');
+        $this->missingForFourDays($shop);
         $pending = $this->pendingNotification();
         $this->fakeSnapshot();
         $this->mock(ShopSyncSentryReporter::class)->shouldNotReceive('send');
@@ -102,6 +131,7 @@ class ShopSyncNotificationsTest extends TestCase
     public function dry_run_with_missing_notification_table_warns_and_still_previews_candidates(): void
     {
         $shop = $this->shop('確認対象店舗');
+        $this->missingForFourDays($shop);
         Schema::drop('shop_sync_notifications');
         $this->fakeSnapshot();
         $this->mock(ShopSyncSentryReporter::class)->shouldNotReceive('send');
@@ -120,6 +150,7 @@ class ShopSyncNotificationsTest extends TestCase
     public function failed_delivery_is_retried_with_the_same_notification_even_without_new_hides(): void
     {
         $shop = $this->shop('確認が必要な店舗');
+        $this->missingForFourDays($shop);
         $this->fakeSnapshot([], 2);
         $firstId = null;
         $reporter = $this->mock(ShopSyncSentryReporter::class);
@@ -165,7 +196,8 @@ class ShopSyncNotificationsTest extends TestCase
     public function missing_dsn_keeps_notifications_pending_until_configuration_is_added(): void
     {
         config(['shop-sync.sentry_dsn' => null]);
-        $this->shop('通知待ち店舗');
+        $shop = $this->shop('通知待ち店舗');
+        $this->missingForFourDays($shop);
         $this->fakeSnapshot([], 2);
         $this->mock(ShopSyncSentryReporter::class)->shouldReceive('send')->once();
 
@@ -194,7 +226,17 @@ class ShopSyncNotificationsTest extends TestCase
     public function failing_to_save_notification_rolls_back_the_publication_change(): void
     {
         $shop = $this->shop('公開維持店舗');
-        $this->fakeSnapshot();
+        $this->missingForFourDays($shop);
+        $stateBefore = $shop->syncState()->first()->getAttributes();
+        $restoring = $this->shop('同時に復活する店舗', ['is_deleted' => true]);
+        ShopSyncState::create([
+            'shop_id' => $restoring->id,
+            'last_checked_on' => '2026-10-22',
+            'consecutive_missing_days' => 5,
+            'hidden_at' => now()->subDay(),
+        ]);
+        $restoringBefore = $restoring->syncState()->first()->getAttributes();
+        $this->fakeSnapshot([13 => [$restoring->name]]);
         $this->mock(\App\Services\ShopSyncNotifier::class)->shouldReceive('record')->once()
             ->andThrow(new RuntimeException('Cannot save notification'));
 
@@ -206,6 +248,9 @@ class ShopSyncNotificationsTest extends TestCase
         }
 
         $this->assertFalse((bool) $shop->fresh()->is_deleted);
+        $this->assertSame($stateBefore, $shop->syncState()->first()->getAttributes());
+        $this->assertTrue((bool) $restoring->fresh()->is_deleted);
+        $this->assertSame($restoringBefore, $restoring->syncState()->first()->getAttributes());
         $this->assertDatabaseCount('shop_sync_notifications', 0);
     }
 
@@ -236,6 +281,15 @@ class ShopSyncNotificationsTest extends TestCase
         return Shop::factory()->create(array_merge([
             'name' => $name, 'prefecture_code' => 13, 'address' => '東京都豊島区',
         ], $attributes));
+    }
+
+    private function missingForFourDays(Shop $shop): void
+    {
+        ShopSyncState::create([
+            'shop_id' => $shop->id,
+            'last_checked_on' => '2026-10-22',
+            'consecutive_missing_days' => 4,
+        ]);
     }
 
     private function pendingNotification(): ShopSyncNotification

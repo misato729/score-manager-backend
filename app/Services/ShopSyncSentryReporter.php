@@ -22,11 +22,18 @@ class ShopSyncSentryReporter
     public function send(ShopSyncNotification $notification): void
     {
         $shops = array_map(fn (array $shop) => array_intersect_key($shop, array_flip([
-            'id', 'name', 'prefecture', 'address', 'edit_url',
+            'id', 'name', 'prefecture', 'address', 'edit_url', 'consecutive_missing_days', 'last_checked_on',
         ])), $notification->shops);
+        $confirmedFiveDays = $shops !== [] && array_reduce(
+            $shops,
+            fn (bool $confirmed, array $shop) => $confirmed && (int) ($shop['consecutive_missing_days'] ?? 0) >= 5,
+            true,
+        );
         $date = ($notification->created_at ?? now())->copy()->setTimezone('Asia/Tokyo');
         $lines = [
-            '設置店舗の自動確認で'.count($shops).'店舗を非公開にしました。',
+            $confirmedFiveDays
+                ? '公式検索で5日連続の未掲載を確認し、'.count($shops).'店舗を非公開にしました。'
+                : '設置店舗の自動確認で'.count($shops).'店舗を非公開にしました。',
             '日時: '.$date->format('Y-m-d H:i:s').'（日本時間）',
             '件数: '.count($shops).'店舗',
             '',
@@ -39,7 +46,12 @@ class ShopSyncSentryReporter
             $lines[] = '';
         }
 
-        $lines[] = '公式検索から消えた理由は、撤去のほか店舗名の変更である可能性があります。';
+        $lines[] = '公式検索から消えた理由は、撤去のほか一時的な未掲載や店舗名の変更である可能性があります。';
+        if ($confirmedFiveDays) {
+            $lines[] = '自動非公開化した店舗が同じ都道府県・店舗名で公式検索に復帰した場合は、自動で再公開します。';
+        } else {
+            $lines[] = '営業・稼働状況を確認し、必要に応じて管理画面から手動で再公開してください。';
+        }
         $lines[] = '店舗名が変わった場合は、公式名称に修正して手動で再公開してください。';
         $lines[] = 'KONAMI公式検索: '.self::OFFICIAL_SEARCH_URL;
         $extra = [

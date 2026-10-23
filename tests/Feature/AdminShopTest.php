@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -87,6 +88,117 @@ class AdminShopTest extends TestCase
             'description' => '大宮駅東口徒歩1分',
             'is_deleted' => false,
         ]);
+    }
+
+    #[Test]
+    public function changing_price_of_a_published_shop_preserves_its_missing_days(): void
+    {
+        $shop = $this->shopWithSyncState();
+
+        $this->actingAs($this->allowedAdmin())
+            ->put(route('shops.update', $shop), $this->shopInput($shop, ['price' => 150]))
+            ->assertRedirect(route('shops.index'));
+
+        $this->assertDatabaseHas('shops', ['id' => $shop->id, 'price' => 150, 'is_deleted' => false]);
+        $this->assertDatabaseHas('shop_sync_states', [
+            'shop_id' => $shop->id,
+            'consecutive_missing_days' => 3,
+            'hidden_at' => null,
+        ]);
+        $this->assertSame('2026-10-22', $shop->syncState()->firstOrFail()->last_checked_on->toDateString());
+    }
+
+    #[Test]
+    #[DataProvider('identityChanges')]
+    public function changing_shop_identity_resets_its_sync_state(array $changes): void
+    {
+        $shop = $this->shopWithSyncState();
+
+        $this->actingAs($this->allowedAdmin())
+            ->put(route('shops.update', $shop), $this->shopInput($shop, $changes))
+            ->assertRedirect(route('shops.index'));
+
+        $this->assertDatabaseMissing('shop_sync_states', ['shop_id' => $shop->id]);
+        $this->assertDatabaseHas('shops', ['id' => $shop->id, ...$changes]);
+    }
+
+    public static function identityChanges(): array
+    {
+        return [
+            'name' => [['name' => '変更後の店舗名']],
+            'prefecture' => [['prefecture_code' => 13]],
+            'address' => [['address' => '埼玉県さいたま市大宮区大門町2-2']],
+        ];
+    }
+
+    #[Test]
+    public function manually_hiding_a_published_shop_clears_its_sync_state(): void
+    {
+        $shop = $this->shopWithSyncState();
+
+        $this->actingAs($this->allowedAdmin())
+            ->put(route('shops.update', $shop), $this->shopInput($shop, ['is_deleted' => '1']))
+            ->assertRedirect(route('shops.index'));
+
+        $this->assertDatabaseHas('shops', ['id' => $shop->id, 'is_deleted' => true]);
+        $this->assertDatabaseMissing('shop_sync_states', ['shop_id' => $shop->id]);
+    }
+
+    #[Test]
+    public function saving_an_automatically_hidden_shop_as_hidden_takes_manual_ownership(): void
+    {
+        $shop = $this->shopWithSyncState(true);
+
+        $this->actingAs($this->allowedAdmin())
+            ->put(route('shops.update', $shop), $this->shopInput($shop, ['is_deleted' => '1', 'price' => 150]))
+            ->assertRedirect(route('shops.index'));
+
+        $this->assertDatabaseHas('shops', ['id' => $shop->id, 'is_deleted' => true, 'price' => 150]);
+        $this->assertDatabaseMissing('shop_sync_states', ['shop_id' => $shop->id]);
+    }
+
+    #[Test]
+    public function manually_republishing_a_shop_clears_its_automatic_hidden_state(): void
+    {
+        $shop = $this->shopWithSyncState(true);
+
+        $this->actingAs($this->allowedAdmin())
+            ->put(route('shops.update', $shop), $this->shopInput($shop))
+            ->assertRedirect(route('shops.index'));
+
+        $this->assertDatabaseHas('shops', ['id' => $shop->id, 'is_deleted' => false]);
+        $this->assertDatabaseMissing('shop_sync_states', ['shop_id' => $shop->id]);
+    }
+
+    private function shopWithSyncState(bool $hidden = false): Shop
+    {
+        $shop = Shop::factory()->create([
+            'name' => 'タイトーステーション大宮店',
+            'address' => '埼玉県さいたま市大宮区大門町1-1',
+            'prefecture_code' => 11,
+            'is_deleted' => $hidden,
+        ]);
+        $shop->syncState()->create([
+            'last_checked_on' => '2026-10-22',
+            'consecutive_missing_days' => $hidden ? 5 : 3,
+            'hidden_at' => $hidden ? '2026-10-22 22:30:00' : null,
+        ]);
+
+        return $shop;
+    }
+
+    private function shopInput(Shop $shop, array $changes = []): array
+    {
+        return array_replace($shop->only([
+            'name',
+            'address',
+            'prefecture_code',
+            'lat',
+            'lng',
+            'price',
+            'number_of_machine',
+            'description',
+        ]), $changes);
     }
 
     private function allowedAdmin(): User

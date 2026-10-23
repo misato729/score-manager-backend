@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Shop;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminShopController extends Controller
 {
@@ -64,8 +65,19 @@ class AdminShopController extends Controller
         // 論理削除の値を設定（チェックされていない場合はfalse）
         $data['is_deleted'] = $request->has('is_deleted');
 
-        $shop = Shop::findOrFail($id);
-        $shop->update($data);
+        DB::transaction(function () use ($id, $data): void {
+            $shop = Shop::query()->lockForUpdate()->findOrFail($id);
+            $visibilityChanged = (bool) $shop->is_deleted !== $data['is_deleted'];
+            $shop->fill($data);
+            $resetSyncState = $data['is_deleted']
+                || $visibilityChanged
+                || $shop->isDirty(['name', 'prefecture_code', 'address']);
+            $shop->save();
+
+            if ($resetSyncState) {
+                $shop->syncState()->delete();
+            }
+        });
 
         return redirect()->route('shops.index')->with('success', 'Shop updated successfully.');
     }
