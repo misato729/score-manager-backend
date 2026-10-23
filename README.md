@@ -122,6 +122,12 @@ RenderのWebサービスの起動状態に依存せず、GitHub Actionsから直
 
 接続URLはGitHub Secretsで管理し、ログに出力しない。このワークフローはマイグレーションやシードを実行しない。
 
+#### GASからの起動への切り替え
+
+GitHub Actionsの予約イベントが遅延・欠落する場合に備え、追加費用なしでGoogle Apps Script（GAS）から毎朝07:30 JSTに既存のワークフローを起動できる。[設定手順とコード](automation/shop-sync/README.md)を参照する。GAS側で現在時刻を1分ごとに確認し、07:30以降にその日1回だけGitHubへ実行を依頼する。DB接続情報とSentry DSNは引き続きGitHub Secretsに保持する。
+
+GASの動作確認が終わるまでは既存のGitHub予約を継続し、切り替え時にこのワークフローの `schedule` だけを削除する。`workflow_dispatch` はGASと手動確認の両方で使用する。GAS経由の実行には実行名に予定日と `GAS` が表示される。
+
 Neonのpooler接続をPHP 8.3で使用するため、PostgreSQL接続に `PDO::PGSQL_ATTR_DISABLE_PREPARES => true` を設定している。RenderとGitHub Actionsの両方に適用し、[PHPのPostgreSQLドライバー](https://www.php.net/manual/en/class.pdo-pgsql.php#pdo-pgsql.constants.attr-disable-prepares)からクエリと値を分けて送ることで、booleanを含む型推論を維持しながらPgBouncerと非互換の名前付きprepared statementを避ける。
 
 ### 非公開化時のメール通知（Sentry）

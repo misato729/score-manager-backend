@@ -1,4 +1,5 @@
 name: Sync KONAMI shops
+run-name: Sync KONAMI shops / ${{ github.event_name == 'schedule' && 'GitHub schedule' || inputs.scheduled_on != '' && format('GAS {0} 07:30 JST', inputs.scheduled_on) || 'manual' }}
 
 on:
   schedule:
@@ -16,6 +17,11 @@ on:
         required: true
         type: boolean
         default: false
+      scheduled_on:
+        description: 'GASが指定する日本時間の予定日（YYYY-MM-DD）。手動実行時は空欄'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
