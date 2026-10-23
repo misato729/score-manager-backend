@@ -112,7 +112,7 @@ php artisan shops:sync-konami
 
 ### 毎日の自動実行
 
-Google Apps Script（GAS）が日本時間の07:30以降に当日分を1回だけ、GitHub Actionsの `Sync KONAMI shops` へ実行依頼する。GASは1分ごとに現在時刻と送信済み日付を確認する。同期本体はGitHub Actions上で店舗の掲載状況を確認し、不在日数の記録・非公開化・再公開を実行する。実際の開始にはGASの起動遅延やGitHub runnerの待ち時間が加わる。
+Google Apps Script（GAS）が日本時間の07:00を指定して当日分を1回だけ、GitHub Actionsの `Sync KONAMI shops` へ実行依頼する。全日の毎分起動は行わず、通常は07:00の単発予約と、予約の欠落に備えた7時台の予備確認の2回だけ実行する。起動依頼の失敗時に限り7時台だけ再試行する。KONAMIのメンテナンス時間05:00〜07:00を含め、7時台以外は自動同期を起動しない。実際の開始にはGASの起動遅延やGitHub runnerの待ち時間が加わる。
 RenderのWebサービスの起動状態に依存せず、GitHub Actionsから直接DBへ接続する。
 
 1. コードとワークフローをデフォルトブランチ（`main`）へ反映する。GASは `main` を指定して起動し、ワークフローもデフォルトブランチ以外の本番DB接続を拒否する。
