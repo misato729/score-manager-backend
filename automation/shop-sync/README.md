@@ -23,7 +23,7 @@ GASの[日次トリガーは時刻が揺れ](https://developers.google.com/apps-
 6. GitHub Actionsの `Sync KONAMI shops / manual` を確認し、DB更新なしの確認が成功していることを確かめる。
 7. `installShopSyncTrigger` を実行する。この関数は設定・ワークフローの有効状態を確認し、`tickShopSync` の1分トリガーを1本だけ作る。他の関数のトリガーは削除しない。
 8. 07:30を過ぎている場合は `tickShopSync` を手動実行して通常の起動を確認できる。`inspectShopSyncSetup` で送信日と実行ログURLを確認する。
-9. 正常な起動を確認してから、`.github/workflows/sync-konami-shops.yml` の `schedule` を削除してmainへ反映する。`workflow_dispatch` は残す。GitHub上のワークフロー全体は無効化しない。
+9. このリポジトリの `.github/workflows/sync-konami-shops.yml` はGASへの切り替え後、`workflow_dispatch` のみを持つ。古い設定から移行する場合は、GASの正常な起動を確認してから旧 `schedule` を削除してmainへ反映する。GitHub上のワークフロー全体は無効化しない。
 10. 翌朝のGAS実行履歴とGitHub Actionsの実行名 `GAS YYYY-MM-DD 07:30 JST`、開始時刻を照合する。手動確認の成功だけで予約起動も確認済みとは扱わない。
 
 GitHubの[workflow dispatch API](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)はAPI版によって200または204で受付成功を返す。両方に対応する。DBのURLやSentry DSNをGASへ移す必要はない。

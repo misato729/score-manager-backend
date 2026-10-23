@@ -112,21 +112,21 @@ php artisan shops:sync-konami
 
 ### 毎日の自動実行
 
-GitHub Actionsの `Sync KONAMI shops` が毎日07:30（日本時間、実行開始が遅れる場合あり）に店舗の掲載状況を確認し、不在日数の記録・非公開化・再公開を実行する。
+Google Apps Script（GAS）が日本時間の07:30以降に当日分を1回だけ、GitHub Actionsの `Sync KONAMI shops` へ実行依頼する。GASは1分ごとに現在時刻と送信済み日付を確認する。同期本体はGitHub Actions上で店舗の掲載状況を確認し、不在日数の記録・非公開化・再公開を実行する。実際の開始にはGASの起動遅延やGitHub runnerの待ち時間が加わる。
 RenderのWebサービスの起動状態に依存せず、GitHub Actionsから直接DBへ接続する。
 
-1. コードとワークフローをデフォルトブランチ（`main`）へ反映する。定期実行はデフォルトブランチでのみ有効となる。
+1. コードとワークフローをデフォルトブランチ（`main`）へ反映する。GASは `main` を指定して起動し、ワークフローもデフォルトブランチ以外の本番DB接続を拒否する。
 2. Renderのデプロイ完了とマイグレーション適用を確認し、通知保存用の `shop_sync_notifications` テーブルと掲載状況の追跡用の `shop_sync_states` テーブルを作成する。別の方法で配置する場合は、対象環境で `php artisan migrate --force` を実行する。通常の同期を実行する前に両テーブルの存在を確認する。
 3. リポジトリの **Settings → Secrets and variables → Actions** に `SHOP_SYNC_DATABASE_URL` を登録する。値にはGitHub Actionsから接続可能なPostgreSQLの外部接続URLを使用する。Render内部向けURLは使用できない。店舗情報・掲載状況・通知記録の読み取り・更新に必要な権限を持つDBアカウントを使用する。
-4. **Actions → Sync KONAMI shops → Run workflow** で `main` を選び、まず `dry_run` をオンにして変更候補を確認する。オフにすると更新する。定期実行時は更新する。
+4. **Actions → Sync KONAMI shops → Run workflow** で `main` を選び、まず `dry_run` をオンにして変更候補を確認する。オフにすると更新する。GASからの通常起動時は更新する。
 
 接続URLはGitHub Secretsで管理し、ログに出力しない。このワークフローはマイグレーションやシードを実行しない。
 
-#### GASからの起動への切り替え
+#### GASからの定期起動
 
-GitHub Actionsの予約イベントが遅延・欠落する場合に備え、追加費用なしでGoogle Apps Script（GAS）から毎朝07:30 JSTに既存のワークフローを起動できる。[設定手順とコード](automation/shop-sync/README.md)を参照する。GAS側で現在時刻を1分ごとに確認し、07:30以降にその日1回だけGitHubへ実行を依頼する。DB接続情報とSentry DSNは引き続きGitHub Secretsに保持する。
+GitHub Actionsの予約イベントが遅延・欠落したため、追加費用なしでGoogle Apps Script（GAS）から既存のワークフローを起動する。[設定手順とコード](automation/shop-sync/README.md)を参照する。DB接続情報とSentry DSNは引き続きGitHub Secretsに保持する。
 
-GASの動作確認が終わるまでは既存のGitHub予約を継続し、切り替え時にこのワークフローの `schedule` だけを削除する。`workflow_dispatch` はGASと手動確認の両方で使用する。GAS経由の実行には実行名に予定日と `GAS` が表示される。
+GitHub側の `schedule` は削除し、起動元をGASに一本化する。`workflow_dispatch` はGASと手動確認の両方で使用する。GAS経由の実行には実行名に予定日と `GAS` が表示される。
 
 Neonのpooler接続をPHP 8.3で使用するため、PostgreSQL接続に `PDO::PGSQL_ATTR_DISABLE_PREPARES => true` を設定している。RenderとGitHub Actionsの両方に適用し、[PHPのPostgreSQLドライバー](https://www.php.net/manual/en/class.pdo-pgsql.php#pdo-pgsql.constants.attr-disable-prepares)からクエリと値を分けて送ることで、booleanを含む型推論を維持しながらPgBouncerと非互換の名前付きprepared statementを避ける。
 
