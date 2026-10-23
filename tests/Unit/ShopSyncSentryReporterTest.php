@@ -34,10 +34,11 @@ class ShopSyncSentryReporterTest extends TestCase
             ], $event->getTags());
 
             foreach ([
-                '2店舗を非公開にしました', '2026-10-21 17:15:00', '件数: 2店舗',
+                '公式検索で5日連続の未掲載を確認し、2店舗を非公開にしました', '2026-10-21 17:15:00', '件数: 2店舗',
                 '東京ゲーム店', '東京都', 'ID: 13', '東京都豊島区', 'https://example.test/admin/shops/13/edit',
                 '北海道ゲーム店', '北海道', 'ID: 1', '北海道札幌市', 'https://example.test/admin/shops/1/edit',
-                '店舗名の変更', '公式名称に修正して手動で再公開', ShopSyncSentryReporter::OFFICIAL_SEARCH_URL,
+                '一時的な未掲載', '店舗名の変更', '同じ都道府県・店舗名で公式検索に復帰した場合は、自動で再公開',
+                '公式名称に修正して手動で再公開', ShopSyncSentryReporter::OFFICIAL_SEARCH_URL,
                 'https://github.com/example/repo/actions/runs/123',
             ] as $text) {
                 $this->assertStringContainsString($text, $event->getMessage());
@@ -48,6 +49,9 @@ class ShopSyncSentryReporterTest extends TestCase
             $this->assertSame(2, $extra['hidden_shop_count']);
             $this->assertCount(2, $extra['shops']);
             $this->assertSame('東京ゲーム店', $extra['shops'][0]['name']);
+            $this->assertSame(5, $extra['shops'][0]['consecutive_missing_days']);
+            $this->assertSame('2026-10-21', $extra['shops'][0]['last_checked_on']);
+            $this->assertSame(6, $extra['shops'][1]['consecutive_missing_days']);
             $this->assertArrayNotHasKey('unrelated_private_field', $extra['shops'][0]);
             $this->assertArrayNotHasKey('recipient', $extra);
             $this->assertStringNotContainsString('private-dsn-must-not-appear-in-event', json_encode($extra));
@@ -59,6 +63,42 @@ class ShopSyncSentryReporterTest extends TestCase
         });
 
         (new ShopSyncSentryReporter($transport))->send($notification);
+    }
+
+    #[DataProvider('snapshotsWithoutFiveConfirmedDays')]
+    public function test_does_not_infer_five_days_or_automatic_republication_from_older_or_incomplete_snapshots(array $missingDays): void
+    {
+        $notification = $this->notification();
+        $notification->shops = array_map(function (array $shop, ?int $days) {
+            if ($days === null) {
+                unset($shop['consecutive_missing_days'], $shop['last_checked_on']);
+            } else {
+                $shop['consecutive_missing_days'] = $days;
+            }
+
+            return $shop;
+        }, $notification->shops, $missingDays);
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())->method('send')->willReturnCallback(function (Event $event) {
+            $this->assertStringStartsWith('設置店舗の自動確認で2店舗を非公開にしました。', $event->getMessage());
+            $this->assertStringNotContainsString('5日連続', $event->getMessage());
+            $this->assertStringNotContainsString('自動で再公開', $event->getMessage());
+            $this->assertStringContainsString('営業・稼働状況を確認し、必要に応じて管理画面から手動で再公開してください。', $event->getMessage());
+            $this->assertStringContainsString('公式名称に修正して手動で再公開してください。', $event->getMessage());
+
+            return new Result(ResultStatus::success(), $event);
+        });
+
+        (new ShopSyncSentryReporter($transport))->send($notification);
+    }
+
+    public static function snapshotsWithoutFiveConfirmedDays(): array
+    {
+        return [
+            'legacy_snapshot' => [[null, null]],
+            'mixed_snapshot' => [[5, null]],
+            'incomplete_confirmation' => [[5, 4]],
+        ];
     }
 
     public function test_retries_reuse_the_event_id_and_fingerprint_but_each_new_batch_gets_a_new_issue(): void
@@ -188,11 +228,13 @@ class ShopSyncSentryReporterTest extends TestCase
                 [
                     'id' => 13, 'name' => '東京ゲーム店', 'prefecture' => '東京都', 'address' => '東京都豊島区',
                     'edit_url' => 'https://example.test/admin/shops/13/edit',
+                    'consecutive_missing_days' => 5, 'last_checked_on' => '2026-10-21',
                     'unrelated_private_field' => 'must not be sent',
                 ],
                 [
                     'id' => 1, 'name' => '北海道ゲーム店', 'prefecture' => '北海道', 'address' => '北海道札幌市',
                     'edit_url' => 'https://example.test/admin/shops/1/edit',
+                    'consecutive_missing_days' => 6, 'last_checked_on' => '2026-10-21',
                 ],
             ],
         ]);
