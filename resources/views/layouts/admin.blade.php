@@ -29,7 +29,8 @@
     .brand{display:flex; align-items:center; gap:12px; min-width:0; font-weight:800}
     .brand-mark{width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,var(--accent),var(--accent-2))}
     .brand-title{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-    .header-actions{display:flex; align-items:center; gap:12px}
+    .header-actions{display:flex; align-items:center; gap:12px; flex-shrink:0}
+    .header-actions .btn{white-space:nowrap}
     .user-email{max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:.9rem}
     .app-sidebar{
       position:fixed; top:var(--header-height); bottom:0; left:0; z-index:10; width:var(--sidebar-width);
@@ -98,8 +99,9 @@
       .brand-title{font-size:.95rem}
       .user-email{display:none}
       .app-sidebar{top:var(--header-height); right:0; bottom:auto; width:auto; padding:8px 14px; border-right:0; border-bottom:1px solid var(--stroke)}
-      .nav-list{grid-template-columns:1fr 1fr}
-      .nav-link{min-height:40px; justify-content:center}
+      .nav-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .nav-link{min-height:40px; justify-content:center; padding:10px 4px; font-size:.85rem; white-space:nowrap}
+      .nav-icon{display:none}
       .app-main{padding:calc(var(--header-height) + 78px) 14px 28px}
       .page-header{align-items:flex-start; flex-direction:column}
       .form-grid{grid-template-columns:1fr}
@@ -130,6 +132,7 @@
       <ul class="nav-list">
         <li><a class="nav-link {{ request()->routeIs('shops.*') ? 'active' : '' }}" href="{{ route('shops.index') }}"><span class="nav-icon">□</span><span>店舗一覧</span></a></li>
         <li><a class="nav-link {{ request()->routeIs('songs.*') ? 'active' : '' }}" href="{{ route('songs.index') }}"><span class="nav-icon">♪</span><span>楽曲一覧</span></a></li>
+        <li><a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}"><span class="nav-icon" aria-hidden="true">○</span><span>ユーザー一覧</span></a></li>
       </ul>
     </nav>
   </aside>

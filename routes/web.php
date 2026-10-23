@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminShopController;
 use App\Http\Controllers\AdminSongController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Http\Request;
@@ -41,11 +42,11 @@ Route::prefix('api')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| 管理画面ルート（ID=10のみアクセス可）
+| 管理画面ルート（許可されたユーザーのみアクセス可）
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')
-    ->middleware(['auth', 'only10']) // auth でログイン必須 → only10 でID=10制限
+    ->middleware(['auth', 'only10'])
     ->group(function () {
         Route::get('shops', [AdminShopController::class, 'index'])->name('shops.index');
         Route::get('shops/create', [AdminShopController::class, 'create'])->name('shops.create');
@@ -55,5 +56,6 @@ Route::prefix('admin')
         Route::get('songs', [AdminSongController::class, 'index'])->name('songs.index');
         Route::get('songs/{song}/edit', [AdminSongController::class, 'edit'])->name('songs.edit');
         Route::put('songs/{song}', [AdminSongController::class, 'update'])->name('songs.update');
+        Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
         // 他の管理画面ルートもここにまとめて追加
     });
