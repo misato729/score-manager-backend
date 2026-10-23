@@ -1,5 +1,5 @@
 name: Sync KONAMI shops
-run-name: Sync KONAMI shops / ${{ inputs.scheduled_on != '' && format('GAS {0} 07:30 JST', inputs.scheduled_on) || 'manual' }}
+run-name: Sync KONAMI shops / ${{ inputs.scheduled_on != '' && format('GAS {0} 07:00 JST', inputs.scheduled_on) || 'manual' }}
 
 on:
   workflow_dispatch:

@@ -9,9 +9,15 @@ const token = 'private-test-token-must-never-be-logged';
 const lastDayKey = 'SHOP_SYNC_LAST_DISPATCH_DAY';
 const dispatchUrl = 'https://api.github.com/repos/misato729/score-manager-backend/actions/workflows/sync-konami-shops.yml/dispatches';
 const activeWorkflow = { code: 200, body: JSON.stringify({ state: 'active' }) };
+let triggerId = 0;
+
+function makeTrigger(handler, schedule = {}) {
+  const id = `test-trigger-${++triggerId}`;
+  return { ...schedule, getHandlerFunction: () => handler, getUniqueId: () => id };
+}
 
 function harness(options = {}) {
-  let now = new Date(options.now ?? '2026-10-23T07:30:00+09:00').getTime();
+  let now = new Date(options.now ?? '2026-10-23T07:00:00+09:00').getTime();
   const properties = new Map(Object.entries({ GITHUB_TOKEN: token, ...(options.properties ?? {}) }));
   const requests = [];
   const logs = [];
@@ -21,8 +27,14 @@ function harness(options = {}) {
   const deletedTriggers = [];
   let releases = 0;
   let lockAttempts = 0;
+  let tokenReads = 0;
+  let creationAttempts = 0;
+  let maxTriggerCount = triggers.length;
   const scriptProperties = {
-    getProperty: (key) => properties.get(key) ?? null,
+    getProperty(key) {
+      if (key === 'GITHUB_TOKEN') now += options.tokenReadAdvanceMs?.[tokenReads++] ?? 0;
+      return properties.get(key) ?? null;
+    },
     getProperties: () => Object.fromEntries(properties),
     setProperty(key, value) {
       properties.set(key, String(value));
@@ -86,12 +98,21 @@ function harness(options = {}) {
       newTrigger(handler) {
         const builder = {
           timeBased() { return this; },
-          everyMinutes(minutes) { this.minutes = minutes; return this; },
+          at(date) { this.schedule = { ...this.schedule, at: Number(date) }; return this; },
+          after(milliseconds) { this.schedule = { ...this.schedule, at: now + milliseconds }; return this; },
+          atHour(hour) { this.schedule = { ...this.schedule, hour }; return this; },
+          everyDays(days) { this.schedule = { ...this.schedule, days }; return this; },
+          inTimezone(timeZone) { this.schedule = { ...this.schedule, timeZone }; return this; },
+          everyMinutes() { assert.fail('All-day minute triggers must not be installed'); },
           create() {
-            if (options.triggerCreationFailure) throw new Error('Trigger creation failed');
-            const trigger = { getHandlerFunction: () => handler, minutes: this.minutes };
+            creationAttempts += 1;
+            now += options.triggerCreateAdvanceMs ?? 0;
+            if (options.failCreationNumbers?.includes(creationAttempts)) throw new Error('Trigger creation failed');
+            if (triggers.length >= 20) throw new Error('Trigger quota exceeded');
+            const trigger = makeTrigger(handler, this.schedule);
             createdTriggers.push(trigger);
             triggers.push(trigger);
+            maxTriggerCount = Math.max(maxTriggerCount, triggers.length);
             return trigger;
           },
         };
@@ -106,20 +127,55 @@ function harness(options = {}) {
     context, properties, requests, logs, triggers, createdTriggers, deletedTriggers,
     get releases() { return releases; },
     get lockAttempts() { return lockAttempts; },
+    get maxTriggerCount() { return maxTriggerCount; },
+    forHandler(handler) { return triggers.filter((trigger) => trigger.getHandlerFunction() === handler); },
     setNow(value) { now = new Date(value).getTime(); },
   };
 }
 
-test('07:29 JST does not dispatch or record a completed day', () => {
-  const app = harness({ now: '2026-10-23T07:29:59+09:00' });
+function assertNextMorning(app, iso = '2026-10-23T22:00:00.000Z') {
+  const next = app.forHandler('tickShopSync');
+  assert.equal(next.length, 1);
+  assert.equal(new Date(next[0].at).toISOString(), iso);
+}
 
-  assert.equal(app.context.tickShopSync().status, 'before_time');
+test('normal handlers never call GitHub before 07:00 or from 08:00 JST onward', () => {
+  for (const time of ['04:59:59', '05:00:00', '06:59:59', '08:00:00', '09:00:00']) {
+    const app = harness({ now: `2026-10-23T${time}+09:00` });
+
+    assert.equal(app.context.tickShopSync().status, 'outside_window', time);
+    assert.equal(app.context.dailyShopSyncFallback().status, 'outside_window', time);
+    assert.equal(app.context.retryShopSync().status, 'outside_window', time);
+    assert.equal(app.requests.length, 0, time);
+    assert.equal(app.properties.has(lastDayKey), false, time);
+    assert.equal(app.forHandler('retryShopSync').length, 0, time);
+  }
+});
+
+test('crossing 08:00 while reserving the next trigger skips dispatch without recording the day', () => {
+  const app = harness({ now: '2026-10-23T07:59:59+09:00', triggerCreateAdvanceMs: 2000 });
+
+  assert.equal(app.context.tickShopSync().status, 'outside_window');
   assert.equal(app.requests.length, 0);
   assert.equal(app.properties.has(lastDayKey), false);
+  assert.equal(app.forHandler('retryShopSync').length, 0);
+  assertNextMorning(app);
+  assert.equal(app.releases, 1);
+});
+
+test('crossing 08:00 during the final token read skips the POST without recording the day', () => {
+  const app = harness({ now: '2026-10-23T07:59:59+09:00', tokenReadAdvanceMs: [0, 2000] });
+
+  assert.equal(app.context.tickShopSync().status, 'outside_window');
+  assert.equal(app.requests.length, 0);
+  assert.equal(app.properties.has(lastDayKey), false);
+  assert.equal(app.forHandler('retryShopSync').length, 0);
+  assertNextMorning(app);
+  assert.equal(app.releases, 1);
 });
 
 for (const code of [200, 204]) {
-  test(`07:30 JST dispatches main with explicit daily inputs and accepts HTTP ${code}`, () => {
+  test(`07:00 JST dispatches main, schedules the next morning, and accepts HTTP ${code}`, () => {
     const app = harness({ responses: [{
       code,
       body: code === 200 ? JSON.stringify({
@@ -144,6 +200,7 @@ for (const code of [200, 204]) {
     assert.equal(String(payload.inputs.test_notification), 'false');
     assert.equal(payload.inputs.scheduled_on, '2026-10-23');
     assert.equal(app.properties.get(lastDayKey), '2026-10-23');
+    assertNextMorning(app);
     assert.equal(app.releases, 1);
     assert.doesNotMatch(JSON.stringify(result) + app.logs.join('\n'), new RegExp(token));
     if (code === 200) {
@@ -152,45 +209,51 @@ for (const code of [200, 204]) {
   });
 }
 
-test('a second tick on the same JST day does not dispatch again', () => {
+test('the independent fallback does not dispatch a second run after one-shot success', () => {
   const app = harness();
   app.context.tickShopSync();
-  app.setNow('2026-10-23T23:59:00+09:00');
+  app.setNow('2026-10-23T07:40:00+09:00');
 
-  assert.equal(app.context.tickShopSync().status, 'already_dispatched');
+  assert.equal(app.context.dailyShopSyncFallback().status, 'already_dispatched');
   assert.equal(app.requests.length, 1);
   assert.equal(app.properties.get(lastDayKey), '2026-10-23');
+  assertNextMorning(app);
 });
 
 test('the following JST day can dispatch once again', () => {
   const app = harness();
   app.context.tickShopSync();
-  app.setNow('2026-10-24T07:30:00+09:00');
+  app.setNow('2026-10-24T07:00:00+09:00');
 
   assert.equal(app.context.tickShopSync().status, 'dispatched');
   assert.equal(app.requests.length, 2);
   assert.equal(app.properties.get(lastDayKey), '2026-10-24');
   assert.equal(JSON.parse(app.requests[1].payload).inputs.scheduled_on, '2026-10-24');
+  assertNextMorning(app, '2026-10-24T22:00:00.000Z');
 });
 
-test('a delayed 09:00 tick catches up instead of requiring an exact minute match', () => {
-  const app = harness({ now: '2026-10-23T09:00:00+09:00' });
+test('a delayed 07:59 tick catches up within the permitted hour', () => {
+  const app = harness({ now: '2026-10-23T07:59:59+09:00' });
 
   assert.equal(app.context.tickShopSync().status, 'dispatched');
   assert.equal(app.requests.length, 1);
   assert.equal(app.properties.get(lastDayKey), '2026-10-23');
 });
 
-test('HTTP 500 does not mark the day complete and a later tick can retry', () => {
+test('HTTP 500 schedules one retry a minute later and a successful retry clears it', () => {
   const app = harness({ responses: [{ code: 500, body: `private response ${token}` }, 204] });
 
   assert.throws(() => app.context.tickShopSync(), (error) => /HTTP 500/.test(error.message) && !String(error).includes(token));
   assert.equal(app.properties.has(lastDayKey), false);
   assert.equal(app.releases, 1);
-  app.setNow('2026-10-23T09:00:00+09:00');
-  assert.equal(app.context.tickShopSync().status, 'dispatched');
+  assertNextMorning(app);
+  assert.equal(app.forHandler('retryShopSync').length, 1);
+  assert.equal(new Date(app.forHandler('retryShopSync')[0].at).toISOString(), '2026-10-22T22:01:00.000Z');
+  app.setNow('2026-10-23T07:01:00+09:00');
+  assert.equal(app.context.retryShopSync().status, 'dispatched');
   assert.equal(app.requests.length, 2);
   assert.equal(app.properties.get(lastDayKey), '2026-10-23');
+  assert.equal(app.forHandler('retryShopSync').length, 0);
   assert.doesNotMatch(app.logs.join('\n'), new RegExp(token));
 });
 
@@ -200,10 +263,19 @@ test('network failures do not leak credentials or prevent a later retry', () => 
   assert.throws(() => app.context.tickShopSync(), (error) => /GitHub API/.test(error.message) && !String(error).includes(token));
   assert.equal(app.properties.has(lastDayKey), false);
   assert.equal(app.releases, 1);
-  app.setNow('2026-10-23T09:00:00+09:00');
-  assert.equal(app.context.tickShopSync().status, 'dispatched');
+  app.setNow('2026-10-23T07:01:00+09:00');
+  assert.equal(app.context.retryShopSync().status, 'dispatched');
   assert.equal(app.requests.length, 2);
   assert.doesNotMatch(app.logs.join('\n'), new RegExp(token));
+});
+
+test('a failure at 07:59 does not schedule a retry in the 08:00 hour', () => {
+  const app = harness({ now: '2026-10-23T07:59:00+09:00', responses: [500] });
+
+  assert.throws(() => app.context.tickShopSync(), /HTTP 500/);
+  assert.equal(app.properties.has(lastDayKey), false);
+  assert.equal(app.forHandler('retryShopSync').length, 0);
+  assertNextMorning(app);
 });
 
 test('a busy lock skips dispatch without releasing another execution\'s lock', () => {
@@ -213,6 +285,7 @@ test('a busy lock skips dispatch without releasing another execution\'s lock', (
   assert.equal(app.requests.length, 0);
   assert.equal(app.properties.has(lastDayKey), false);
   assert.equal(app.releases, 0);
+  assert.equal(app.createdTriggers.length, 0);
 });
 
 test('a missing GitHub token fails safely before any external request', () => {
@@ -222,11 +295,12 @@ test('a missing GitHub token fails safely before any external request', () => {
   assert.equal(app.requests.length, 0);
   assert.equal(app.properties.has(lastDayKey), false);
   assert.equal(app.releases, 1);
+  assert.equal(app.forHandler('retryShopSync').length, 0);
 });
 
 test('a manual dry-run uses dry_run=true and preserves the daily dispatch record', () => {
   const app = harness({
-    now: '2026-10-23T06:00:00+09:00',
+    now: '2026-10-23T09:00:00+09:00',
     properties: { [lastDayKey]: '2026-10-22', SHOP_SYNC_LAST_RUN_URL: 'https://github.com/example/previous' },
   });
 
@@ -241,33 +315,120 @@ test('a manual dry-run uses dry_run=true and preserves the daily dispatch record
   assert.ok(!payload.inputs.scheduled_on);
   assert.equal(app.properties.get(lastDayKey), '2026-10-22');
   assert.equal(app.properties.get('SHOP_SYNC_LAST_RUN_URL'), 'https://github.com/example/previous');
+  assert.equal(app.createdTriggers.length, 0);
 });
 
-test('reinstalling the minute trigger leaves one sync handler and preserves other handlers', () => {
-  const other = { getHandlerFunction: () => 'anotherAutomation' };
-  const old = { getHandlerFunction: () => 'tickShopSync' };
-  const duplicate = { getHandlerFunction: () => 'tickShopSync' };
-  const app = harness({ triggers: [other, old, duplicate], responses: [activeWorkflow, activeWorkflow] });
+test('manual dry-runs also avoid GitHub during the 05:00–06:59 maintenance window', () => {
+  for (const time of ['05:00:00', '06:59:59']) {
+    const app = harness({ now: `2026-10-23T${time}+09:00` });
+
+    assert.throws(() => app.context.dispatchShopSyncDryRun());
+    assert.equal(app.requests.length, 0);
+    assert.equal(app.properties.has(lastDayKey), false);
+  }
+});
+
+test('a dry-run crossing 05:00 during the token read stops before the maintenance-window request', () => {
+  const app = harness({ now: '2026-10-23T04:59:59+09:00', tokenReadAdvanceMs: [2000] });
+
+  assert.throws(() => app.context.dispatchShopSyncDryRun(), /メンテナンス/);
+  assert.equal(app.requests.length, 0);
+  assert.equal(app.properties.has(lastDayKey), false);
+  assert.equal(app.createdTriggers.length, 0);
+});
+
+test('reinstallation leaves one next-morning trigger plus a daily fallback and preserves other handlers', () => {
+  const other = makeTrigger('anotherAutomation');
+  const old = makeTrigger('tickShopSync');
+  const retry = makeTrigger('retryShopSync');
+  const fallback = makeTrigger('dailyShopSyncFallback');
+  const app = harness({ triggers: [other, old, retry, fallback], responses: [activeWorkflow, activeWorkflow] });
 
   app.context.installShopSyncTrigger();
   app.context.installShopSyncTrigger();
 
-  assert.equal(app.triggers.length, 2);
+  assert.equal(app.triggers.length, 3);
   assert.equal(app.triggers.includes(other), true);
   assert.equal(app.deletedTriggers.includes(other), false);
-  const syncTriggers = app.triggers.filter((trigger) => trigger.getHandlerFunction() === 'tickShopSync');
-  assert.equal(syncTriggers.length, 1);
-  assert.equal(syncTriggers[0].minutes, 1);
+  assertNextMorning(app);
+  const fallbacks = app.forHandler('dailyShopSyncFallback');
+  assert.equal(fallbacks.length, 1);
+  assert.equal(fallbacks[0].hour, 7);
+  assert.equal(fallbacks[0].days, 1);
+  assert.equal(fallbacks[0].timeZone, 'Asia/Tokyo');
+  assert.equal(app.forHandler('retryShopSync').length, 0);
 });
 
-test('a failed replacement trigger creation preserves the existing trigger', () => {
-  const old = { getHandlerFunction: () => 'tickShopSync' };
-  const other = { getHandlerFunction: () => 'anotherAutomation' };
-  const app = harness({
-    triggers: [old, other], responses: [activeWorkflow], triggerCreationFailure: true,
-  });
+for (const failureNumber of [1, 2]) {
+  test(`installation failure while creating trigger ${failureNumber} preserves all old triggers`, () => {
+    const old = makeTrigger('tickShopSync');
+    const fallback = makeTrigger('dailyShopSyncFallback');
+    const other = makeTrigger('anotherAutomation');
+    const app = harness({
+      triggers: [old, fallback, other], responses: [activeWorkflow], failCreationNumbers: [failureNumber],
+    });
 
-  assert.throws(() => app.context.installShopSyncTrigger());
-  assert.deepEqual(app.triggers, [old, other]);
-  assert.equal(app.deletedTriggers.length, 0);
+    assert.throws(() => app.context.installShopSyncTrigger());
+    assert.deepEqual(app.triggers, [old, fallback, other]);
+    assert.equal(app.deletedTriggers.includes(old), false);
+    assert.equal(app.deletedTriggers.includes(fallback), false);
+    assert.equal(app.deletedTriggers.includes(other), false);
+  });
+}
+
+test('next-morning scheduling failure does not block today\'s dispatch and the fallback repairs it', () => {
+  const old = makeTrigger('tickShopSync');
+  const fallback = makeTrigger('dailyShopSyncFallback');
+  const app = harness({ triggers: [old, fallback], failCreationNumbers: [1] });
+
+  assert.equal(app.context.tickShopSync().status, 'dispatched');
+  assert.equal(app.requests.length, 1);
+  assert.equal(app.properties.get(lastDayKey), '2026-10-23');
+  assert.equal(app.triggers.includes(fallback), true);
+  app.setNow('2026-10-23T07:40:00+09:00');
+  assert.equal(app.context.dailyShopSyncFallback().status, 'already_dispatched');
+  assert.equal(app.requests.length, 1);
+  assertNextMorning(app);
+  assert.equal(app.triggers.includes(fallback), true);
+});
+
+test('repeated API failures replace the retry trigger instead of exhausting the trigger quota', () => {
+  const fallback = makeTrigger('dailyShopSyncFallback');
+  const app = harness({ triggers: [fallback], responses: Array(5).fill(500) });
+
+  for (let minute = 0; minute < 5; minute += 1) {
+    app.setNow(`2026-10-23T07:0${minute}:00+09:00`);
+    assert.throws(() => app.context.retryShopSync(), /HTTP 500/);
+    assert.equal(app.forHandler('retryShopSync').length, 1);
+    assert.equal(app.forHandler('tickShopSync').length, 1);
+    assert.equal(app.triggers.includes(fallback), true);
+  }
+  assert.equal(app.requests.length, 5);
+  assert.equal(app.properties.has(lastDayKey), false);
+  assert.ok(app.maxTriggerCount <= 4);
+});
+
+test('next one-shot scheduling uses the JST 07:00 boundary, including the previous UTC date', () => {
+  for (const [time, expected] of [
+    ['06:59:59', '2026-10-22T22:00:00.000Z'],
+    ['07:00:00', '2026-10-23T22:00:00.000Z'],
+    ['09:00:00', '2026-10-23T22:00:00.000Z'],
+  ]) {
+    const app = harness({ now: `2026-10-23T${time}+09:00`, responses: [activeWorkflow] });
+
+    app.context.installShopSyncTrigger();
+    assertNextMorning(app, expected);
+  }
+});
+
+test('an accepted dispatch with an unreadable response is recorded and never dispatched twice', () => {
+  const app = harness({ responses: [{ code: 200, body: `invalid JSON ${token}` }] });
+
+  const result = app.context.tickShopSync();
+  assert.equal(result.status, 'dispatched');
+  assert.equal(result.runUrl, null);
+  assert.equal(app.properties.get(lastDayKey), '2026-10-23');
+  assert.equal(app.context.dailyShopSyncFallback().status, 'already_dispatched');
+  assert.equal(app.requests.length, 1);
+  assert.doesNotMatch(JSON.stringify(result) + app.logs.join('\n'), new RegExp(token));
 });
