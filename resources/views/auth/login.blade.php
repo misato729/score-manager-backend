@@ -107,7 +107,6 @@
           <input type="checkbox" name="remember" value="1">
           ログイン状態を保持する
         </label>
-        <a class="link" href="{{ url('/') }}">Home</a>
       </div>
 
       <button class="btn" type="submit">
@@ -117,7 +116,7 @@
       </button>
     </form>
 
-    <p class="hint">この管理画面は <strong>ID=10</strong> のユーザーのみアクセス可能です。</p>
+    <p class="hint">この管理画面は<strong>管理者権限</strong>のユーザーのみアクセス可能です。</p>
   </div>
 </body>
 </html>
